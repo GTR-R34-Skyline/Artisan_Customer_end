@@ -67,7 +67,7 @@ const CraftsmanPage: React.FC = () => {
         </Reveal>
         <Reveal delay="80ms">
           <Eyebrow>{specialization || 'Independent artisan'}</Eyebrow>
-          <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.03em] text-charcoal sm:text-6xl">
+          <h1 className="mt-3 font-display text-[1.85rem] leading-[1.1] tracking-[-0.03em] text-charcoal sm:text-6xl">
             {craftsman.full_name || 'Independent artisan'}
           </h1>
           <div className="mt-5 flex flex-wrap gap-2">
@@ -118,7 +118,7 @@ const CraftsmanPage: React.FC = () => {
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <Eyebrow>The collection</Eyebrow>
-            <h2 className="mt-3 font-display text-3xl text-charcoal sm:text-5xl">
+            <h2 className="mt-3 font-display text-2xl text-charcoal sm:text-5xl">
               {craftsman.full_name ? `Works by ${craftsman.full_name}` : 'Works from the practice'}
             </h2>
           </div>
@@ -127,7 +127,7 @@ const CraftsmanPage: React.FC = () => {
           )}
         </div>
         {craftsman.products.length ? (
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+          <div className="product-grid mt-8">
             {craftsman.products.map((product: MarketplaceListing, index) => (
               <Reveal key={product.id} delay={`${Math.min(index, 5) * 40}ms`}>
                 <ProductCard listing={product} compact />

@@ -42,17 +42,17 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="auth-page mx-auto grid max-w-market gap-10 px-4 py-12 lg:grid-cols-[0.9fr_0.75fr] lg:gap-16 lg:px-8 lg:py-20">
+    <div className="auth-page mx-auto grid max-w-market gap-6 px-4 py-8 lg:grid-cols-[0.9fr_0.75fr] lg:gap-16 lg:px-8 lg:py-20">
       <div className="auth-intro flex flex-col justify-between">
-        <div className="space-y-6">
+        <div className="space-y-3 md:space-y-6">
           <Eyebrow>Buyer sign in</Eyebrow>
-          <h1 className="hero-title max-w-xl font-display text-4xl leading-[1.05] tracking-[-0.03em] sm:text-6xl">Welcome back.</h1>
+          <h1 className="hero-title max-w-xl font-display text-[1.85rem] leading-[1.1] tracking-[-0.03em] sm:text-6xl">Welcome back.</h1>
           <p className="max-w-md text-sm leading-7 text-stone-600">Sign in to checkout, save pieces, and keep your orders in one place.</p>
         </div>
-        <p className="mt-10 max-w-xs text-sm leading-6 text-stone-500">Checkout uses a simulated UPI payment. No real money is charged.</p>
+        <p className="mt-6 hidden max-w-xs text-sm leading-6 text-stone-500 md:mt-10 md:block">Checkout uses a simulated UPI payment. No real money is charged.</p>
       </div>
 
-      <div className="auth-panel border border-stone-300 p-6 sm:p-8 lg:mt-4">
+      <div className="auth-panel border border-stone-300 p-5 sm:p-8 lg:mt-4">
         {user && profile ? (
           <div className="space-y-6">
             <p className="text-sm leading-7 text-stone-600">
@@ -71,10 +71,10 @@ const Login: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-8">
               {isRegistering && (
-                <Field label="Your name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Enter your name" required />
+                <Field label="Your name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Enter your name" autoComplete="name" required />
               )}
-              <Field label="Email address" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" type="email" required />
-              <Field label="Password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" type="password" required />
+              <Field label="Email address" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" type="email" autoComplete="email" inputMode="email" required />
+              <Field label="Password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" type="password" autoComplete={isRegistering ? 'new-password' : 'current-password'} required />
               <Button type="submit" disabled={loading} className="w-full justify-between">
                 {loading ? 'Signing in' : isRegistering ? 'Create account' : 'Sign in'}
                 <ArrowRight className="h-4 w-4" strokeWidth={1.5} />

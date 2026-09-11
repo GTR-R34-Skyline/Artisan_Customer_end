@@ -65,14 +65,14 @@ const CheckoutPage: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-market px-4 pb-20 pt-8 lg:px-8 lg:pt-12">
+    <div className="mx-auto max-w-market px-4 pb-24 pt-5 lg:px-8 lg:pt-12">
       <Eyebrow>Checkout</Eyebrow>
-      <h1 className="mt-3 font-display text-4xl tracking-[-0.03em] text-charcoal sm:text-5xl">Delivery details</h1>
+      <h1 className="mt-2 font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl md:mt-3">Delivery details</h1>
       <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
         Signed in as {profile?.full_name || user.email}. After confirming, you will complete a simulated UPI payment.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.42fr]">
+      <form onSubmit={handleSubmit} className="mt-8 grid gap-6 lg:mt-10 lg:grid-cols-[1fr_0.42fr] lg:gap-8">
         <div className="space-y-8">
           <Field
             label="Delivery address"
@@ -80,6 +80,7 @@ const CheckoutPage: React.FC = () => {
             onChange={(event) => setShippingAddress(event.target.value)}
             placeholder="Name, street, city, state, PIN"
             textarea
+            autoComplete="street-address"
             required
           />
           {error && <p className="rounded-xl bg-mustard/15 px-4 py-3 text-sm leading-6 text-stone-800">{error}</p>}

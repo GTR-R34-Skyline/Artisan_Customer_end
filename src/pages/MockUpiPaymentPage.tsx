@@ -184,6 +184,8 @@ const MockUpiPaymentPage: React.FC = () => {
                   value={upiId}
                   onChange={(event) => setUpiId(event.target.value)}
                   placeholder="name@bank or success@mockupi"
+                  autoComplete="username"
+                  inputMode="email"
                   required
                 />
               )}

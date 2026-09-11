@@ -47,7 +47,7 @@ export const SectionHeading: React.FC<{
   <div className={`flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between ${align === 'center' ? 'text-center sm:flex-col sm:items-center' : ''}`}>
     <div className={`max-w-2xl space-y-3 ${align === 'center' ? 'mx-auto' : ''}`}>
       {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-      <h2 className="font-display text-[1.85rem] leading-[1.12] tracking-[-0.03em] text-charcoal sm:text-4xl lg:text-[2.6rem]">
+      <h2 className="font-display text-[1.45rem] leading-[1.15] tracking-[-0.03em] text-charcoal sm:text-4xl lg:text-[2.6rem]">
         {title}
       </h2>
       {description && <p className="max-w-xl text-sm leading-7 text-stone-600 sm:text-[0.95rem]">{description}</p>}
@@ -138,7 +138,7 @@ export const ImageFrame: React.FC<{
       <img
         src={src}
         alt={alt}
-        className={`h-full w-full ${fit === 'contain' ? 'object-contain' : 'object-cover'} transition duration-500 ease-out group-hover:scale-[1.03]`}
+        className={`h-full w-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
       />
     ) : (
       <div className="flex h-full min-h-48 items-end bg-sand p-5">
@@ -165,7 +165,7 @@ export const EmptyState: React.FC<{
 );
 
 export const ProductSkeleton: React.FC<{ count?: number; className?: string }> = ({ count = 8, className = '' }) => (
-  <div className={`grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 ${className}`} aria-hidden="true">
+  <div className={`product-grid ${className}`} aria-hidden="true">
     {Array.from({ length: count }, (_, index) => (
       <div key={index} className="overflow-hidden bg-cream">
         <div className="skeleton-block aspect-[4/5]" />
@@ -187,7 +187,10 @@ export const Field: React.FC<{
   type?: string;
   textarea?: boolean;
   required?: boolean;
-}> = ({ label, value, onChange, placeholder, type = 'text', textarea = false, required = false }) => (
+  autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  enterKeyHint?: React.InputHTMLAttributes<HTMLInputElement>['enterKeyHint'];
+}> = ({ label, value, onChange, placeholder, type = 'text', textarea = false, required = false, autoComplete, inputMode, enterKeyHint }) => (
   <label className="field block space-y-2">
     <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-600">
       {label}
@@ -199,8 +202,9 @@ export const Field: React.FC<{
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        autoComplete={autoComplete}
         rows={5}
-        className="w-full resize-y rounded-md border border-stone-300 bg-cream px-4 py-3 text-sm text-charcoal outline-none placeholder:text-stone-500"
+        className="w-full min-h-[7.5rem] resize-y rounded-md border border-stone-300 bg-cream px-4 py-3 text-base text-charcoal outline-none placeholder:text-stone-500 md:text-sm"
       />
     ) : (
       <input
@@ -209,7 +213,10 @@ export const Field: React.FC<{
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className="w-full rounded-md border border-stone-300 bg-cream px-4 py-3 text-sm text-charcoal outline-none placeholder:text-stone-500"
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        enterKeyHint={enterKeyHint}
+        className="w-full min-h-12 rounded-md border border-stone-300 bg-cream px-4 py-3 text-base text-charcoal outline-none placeholder:text-stone-500 md:min-h-11 md:text-sm"
       />
     )}
   </label>

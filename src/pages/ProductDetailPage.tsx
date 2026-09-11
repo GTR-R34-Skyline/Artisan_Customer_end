@@ -2,14 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Heart, Minus, Plus } from 'lucide-react';
 import { ProductReviews } from '../components/ProductReviews';
-import { Button, EmptyState, Eyebrow, ImageFrame, LoadingState, ProductSkeleton, StatusLabel } from '../components/DesignSystem';
+import { Button, EmptyState, Eyebrow, LoadingState, ProductSkeleton, StatusLabel } from '../components/DesignSystem';
 import { ProductCard } from '../components/ProductCard';
+import { ProductGallery } from '../components/ProductGallery';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { getMarketplaceListing, getMarketplaceListings } from '../services/marketplace.service';
 import {
   getProductDescription,
-  getProductImage,
   getProductPrice,
   getProductStory,
   getProductTitle,
@@ -24,9 +24,9 @@ const listingGallery = (listing: MarketplaceProduct) =>
 const RelatedRail: React.FC<{ title: string; listings: MarketplaceListing[] }> = ({ title, listings }) => {
   if (!listings.length) return null;
   return (
-    <section className="mt-16 border-t border-stone-300 pt-10">
+    <section className="mt-10 border-t border-stone-300 pt-8 md:mt-16 md:pt-10">
       <h2 className="font-display text-2xl tracking-[-0.03em] text-charcoal sm:text-3xl">{title}</h2>
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+      <div className="product-grid mt-5">
         {listings.map((listing) => (
           <ProductCard key={listing.id} listing={listing} compact />
         ))}
@@ -46,7 +46,6 @@ const ProductDetailPage: React.FC = () => {
   const [error, setError] = useState('');
   const [added, setAdded] = useState(false);
   const [quantityToAdd, setQuantityToAdd] = useState(1);
-  const [activeImage, setActiveImage] = useState<string | null>(null);
   const [storyOpen, setStoryOpen] = useState(false);
 
   useEffect(() => {
@@ -57,7 +56,6 @@ const ProductDetailPage: React.FC = () => {
       .then(([next, all]) => {
         setListing(next);
         setCatalog(all);
-        setActiveImage(next ? getProductImage(next) : null);
         setQuantityToAdd(1);
         setAdded(false);
         setStoryOpen(false);
@@ -107,8 +105,8 @@ const ProductDetailPage: React.FC = () => {
   ].filter((item): item is { label: string; value: string; to?: string } => Boolean(item));
 
   return (
-    <div className="product-detail-page mx-auto max-w-market px-4 pb-20 pt-6 lg:px-8 lg:pt-8">
-      <nav className="mb-6 text-sm text-stone-500" aria-label="Breadcrumb">
+    <div className={`product-detail-page mx-auto max-w-market pt-0 md:px-4 md:pb-20 md:pt-6 lg:px-8 lg:pt-8 ${canBuy ? 'has-pdp-buybar' : 'pb-10'}`}>
+      <nav className="mb-4 hidden px-4 text-sm text-stone-500 md:mb-6 md:block md:px-0" aria-label="Breadcrumb">
         <Link to="/" className="hover:text-indigo">Home</Link>
         <span className="mx-2">/</span>
         <Link to="/marketplace" className="hover:text-indigo">Marketplace</Link>
@@ -122,59 +120,36 @@ const ProductDetailPage: React.FC = () => {
         <span className="text-charcoal">{getProductTitle(listing)}</span>
       </nav>
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14">
-        {(() => {
-          const gallery = listingGallery(listing);
-          const current = activeImage || gallery[0] || getProductImage(listing);
-          return (
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {gallery.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto sm:w-16 sm:shrink-0 sm:flex-col sm:overflow-visible">
-                  {gallery.map((src) => (
-                    <button
-                      key={src}
-                      type="button"
-                      onClick={() => setActiveImage(src)}
-                      className={`product-thumb aspect-square w-16 shrink-0 ${current === src ? 'is-active' : ''}`}
-                      aria-label="View product photo"
-                      aria-pressed={current === src}
-                    >
-                      <img src={src} alt="" className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-              <ImageFrame
-                src={current}
-                alt={productAlt(listing)}
-                label={listing.category || 'Handmade work'}
-                className="min-w-0 flex-1 aspect-square bg-sand"
-              />
-            </div>
-          );
-        })()}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14">
+        <ProductGallery
+          images={listingGallery(listing)}
+          alt={productAlt(listing)}
+          fallbackLabel={listing.category || getProductTitle(listing)}
+        />
 
-        <article>
+        <article className="min-w-0 px-4 md:px-0">
           {craft && <Eyebrow>{craft}</Eyebrow>}
-          <h1 className="mt-3 font-display text-4xl leading-[1.08] tracking-[-0.03em] text-charcoal sm:text-5xl">{getProductTitle(listing)}</h1>
+          <h1 className="mt-2 break-words font-display text-[1.85rem] leading-[1.12] tracking-[-0.03em] text-charcoal sm:text-5xl md:mt-3">
+            {getProductTitle(listing)}
+          </h1>
           {artisan?.id && (
-            <p className="mt-3 text-sm text-stone-600">
+            <p className="mt-2 text-sm text-stone-600 md:mt-3">
               Made by <Link to={`/craftsman/${artisan.id}`} className="font-semibold text-charcoal hover:text-indigo">{artisan.full_name || 'an independent artisan'}</Link>
               {location ? ` · ${location}` : ''}
             </p>
           )}
 
-          <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
-            <p className="font-display text-4xl text-charcoal">{price !== null ? formatINR(price) : 'Price on request'}</p>
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-3 md:mt-6 md:gap-4">
+            <p className="font-display text-3xl text-charcoal sm:text-4xl">{price !== null ? formatINR(price) : 'Price on request'}</p>
             <StatusLabel tone={stock === 0 ? 'warning' : 'success'}>{stock === 0 ? 'Unavailable' : 'Available'}</StatusLabel>
           </div>
 
           {facts.length > 0 && (
-            <dl className="mt-6 grid grid-cols-2 gap-3">
+            <dl className="mt-5 grid grid-cols-2 gap-2 md:mt-6 md:gap-3">
               {facts.map((fact) => (
-                <div key={fact.label} className="bg-cream px-4 py-3">
+                <div key={fact.label} className="min-w-0 bg-cream px-3 py-3 md:px-4">
                   <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500">{fact.label}</dt>
-                  <dd className="mt-1 text-sm text-charcoal">
+                  <dd className="mt-1 truncate text-sm text-charcoal">
                     {fact.to ? <Link to={fact.to} className="hover:text-indigo">{fact.value}</Link> : fact.value}
                   </dd>
                 </div>
@@ -182,20 +157,8 @@ const ProductDetailPage: React.FC = () => {
             </dl>
           )}
 
-          {story && (
-            <div className="mt-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">The piece</p>
-              <p className="mt-2 text-sm leading-7 text-stone-700">{storyPreview || getProductDescription(listing)}</p>
-              {story.length > 280 && (
-                <button type="button" onClick={() => setStoryOpen((open) => !open)} className="mt-2 text-sm font-semibold text-indigo">
-                  {storyOpen ? 'Show less' : 'Read the full story'}
-                </button>
-              )}
-            </div>
-          )}
-
           {canBuy && (
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-6 hidden flex-wrap items-center gap-3 md:flex md:mt-8">
               <div className="inline-flex items-center rounded-md border border-stone-300 bg-cream">
                 <button type="button" aria-label="Decrease quantity" onClick={() => setQuantityToAdd((value) => Math.max(1, value - 1))} className="min-h-11 min-w-11 p-3">
                   <Minus className="h-4 w-4" strokeWidth={1.75} />
@@ -219,44 +182,88 @@ const ProductDetailPage: React.FC = () => {
             </div>
           )}
 
+          <button
+            type="button"
+            onClick={() => toggle(listing)}
+            className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-charcoal md:hidden"
+            aria-pressed={wished}
+          >
+            <Heart className={`h-5 w-5 ${wished ? 'fill-terracotta text-terracotta' : ''}`} strokeWidth={1.75} />
+            {wished ? 'Saved to wishlist' : 'Save to wishlist'}
+          </button>
+
           {artisan?.id && (
-            <aside className="mt-10 border-t border-stone-300 pt-6">
+            <aside className="mt-8 border-t border-stone-300 pt-5 md:mt-10 md:pt-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">The artisan</p>
               <p className="mt-2 font-display text-2xl text-charcoal">{artisan.full_name || 'Independent artisan'}</p>
               <p className="mt-2 text-sm leading-6 text-stone-600">
-                {[artisan.craft_type || listing.category, location].filter(Boolean).join(' · ') || 'An independent practice represented through ARTISAN.'}
+                {[artisan.craft_type || listing.category, location].filter(Boolean).join(' · ') || 'An independent practice represented through this marketplace.'}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {artisan.verification_status === 'verified' && <StatusLabel tone="success">Verified artisan</StatusLabel>}
                 {artisan.gi_certified && <StatusLabel>GI-certified craft</StatusLabel>}
               </div>
-              <Link to={`/craftsman/${artisan.id}`} className="mt-4 inline-flex text-sm font-semibold text-indigo">
+              <Link to={`/craftsman/${artisan.id}`} className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-indigo">
                 More from this artisan
               </Link>
             </aside>
           )}
+
+          {story && (
+            <div className="mt-6 md:mt-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">The piece</p>
+              <p className="mt-2 text-sm leading-7 text-stone-700">{storyPreview || getProductDescription(listing)}</p>
+              {story.length > 280 && (
+                <button type="button" onClick={() => setStoryOpen((open) => !open)} className="mt-2 min-h-11 text-sm font-semibold text-indigo">
+                  {storyOpen ? 'Show less' : 'Read the full story'}
+                </button>
+              )}
+            </div>
+          )}
         </article>
       </div>
 
-      <ProductReviews productId={listing.id} vendorId={listing.vendor_id} />
+      <div className="px-4 md:px-0">
+        <ProductReviews productId={listing.id} vendorId={listing.vendor_id} />
 
-      {related && (() => {
-        const shown = new Set<string>();
-        const unseen = (items: MarketplaceListing[]) =>
-          items.filter((item) => {
-            if (shown.has(item.id)) return false;
-            shown.add(item.id);
-            return true;
-          });
-        return (
-          <>
-            <RelatedRail title="You may also like" listings={unseen(related.similar)} />
-            {artisan?.full_name && <RelatedRail title={`More from ${artisan.full_name}`} listings={unseen(related.fromArtisan)} />}
-            {listing.category && <RelatedRail title={`More ${listing.category}`} listings={unseen(related.fromCraft)} />}
-            {location && <RelatedRail title={`More from ${location}`} listings={unseen(related.fromRegion)} />}
-          </>
-        );
-      })()}
+        {related && (() => {
+          const shown = new Set<string>();
+          const unseen = (items: MarketplaceListing[]) =>
+            items.filter((item) => {
+              if (shown.has(item.id)) return false;
+              shown.add(item.id);
+              return true;
+            });
+          return (
+            <>
+              <RelatedRail title="You may also like" listings={unseen(related.similar)} />
+              {artisan?.full_name && <RelatedRail title={`More from ${artisan.full_name}`} listings={unseen(related.fromArtisan)} />}
+              {listing.category && <RelatedRail title={`More ${listing.category}`} listings={unseen(related.fromCraft)} />}
+              {location && <RelatedRail title={`More from ${location}`} listings={unseen(related.fromRegion)} />}
+            </>
+          );
+        })()}
+      </div>
+
+      {canBuy && (
+        <div className="pdp-buybar md:hidden">
+          <div className="inline-flex items-center rounded-md border border-stone-300 bg-cream">
+            <button type="button" aria-label="Decrease quantity" onClick={() => setQuantityToAdd((value) => Math.max(1, value - 1))} className="min-h-11 min-w-11">
+              <Minus className="mx-auto h-4 w-4" strokeWidth={1.75} />
+            </button>
+            <span className="min-w-7 text-center text-sm font-semibold">{quantityToAdd}</span>
+            <button type="button" aria-label="Increase quantity" onClick={() => setQuantityToAdd((value) => Math.min(maxQty, value + 1))} className="min-h-11 min-w-11">
+              <Plus className="mx-auto h-4 w-4" strokeWidth={1.75} />
+            </button>
+          </div>
+          <button type="button" onClick={() => addToCart(false)} className="button-dark min-h-12 flex-1 rounded-md px-3 text-sm font-semibold">
+            {added ? 'Added' : 'Add to cart'}
+          </button>
+          <button type="button" onClick={() => addToCart(true)} className="button-light min-h-12 flex-1 rounded-md px-3 text-sm font-semibold">
+            Buy now
+          </button>
+        </div>
+      )}
     </div>
   );
 };

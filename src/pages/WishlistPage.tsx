@@ -9,15 +9,15 @@ const WishlistPage: React.FC = () => {
   const { items } = useWishlist();
 
   return (
-    <div className="mx-auto max-w-market px-4 pb-20 pt-8 lg:px-8 lg:pt-12">
+    <div className="mx-auto max-w-market px-4 pb-20 pt-5 lg:px-8 lg:pt-12">
       <Eyebrow>Saved pieces</Eyebrow>
-      <h1 className="mt-3 font-display text-4xl tracking-[-0.03em] text-charcoal sm:text-5xl">Your wishlist</h1>
-      <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
+      <h1 className="mt-2 font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl md:mt-3">Your wishlist</h1>
+      <p className="mt-2 hidden max-w-xl text-sm leading-7 text-stone-600 md:mt-3 md:block">
         Pieces you want to return to — saved on this device until you are ready to buy.
       </p>
 
       {items.length ? (
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+        <div className="product-grid mt-8">
           {items.map((listing) => (
             <ProductCard key={listing.id} listing={listing} compact />
           ))}

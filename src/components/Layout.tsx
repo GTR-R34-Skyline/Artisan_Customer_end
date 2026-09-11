@@ -1,9 +1,10 @@
 import React, { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Heart, Home, LayoutGrid, LogIn, LogOut, Search, ShoppingBag, UserRound } from 'lucide-react';
+import { Heart, Home, LayoutGrid, LogIn, LogOut, Menu, ShoppingBag, UserRound, X } from 'lucide-react';
 import { useAuth } from '../auth/useAuthHook';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { getMarketplaceListings } from '../services/marketplace.service';
 import { SEARCH_PLACEHOLDER } from '../utils/marketplace';
 
@@ -18,8 +19,10 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   const { count: wishCount } = useWishlist();
   const location = useLocation();
   const navigate = useNavigate();
+  const online = useOnlineStatus();
   const [query, setQuery] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const accountPath = !user || !profile
@@ -30,7 +33,9 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
         ? '/vendor/dashboard'
         : '/orders';
   const isAppChrome = location.pathname.startsWith('/vendor') || location.pathname.startsWith('/admin');
-  const showTabbar = !isAppChrome;
+  const isProductDetail = /^\/marketplace\/[^/]+$/.test(location.pathname);
+  const isCheckoutFlow = location.pathname.startsWith('/checkout');
+  const showTabbar = !isAppChrome && !isProductDetail && !isCheckoutFlow;
   const accountLabel = user && profile
     ? (profile.role === 'admin' ? 'Admin' : profile.role === 'vendor' ? 'Studio' : 'Account')
     : 'Sign in';
@@ -40,12 +45,30 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   }, [location.search]);
 
   useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
     getMarketplaceListings()
       .then((listings) => {
         setCategories(Array.from(new Set(listings.map((listing) => listing.category).filter((value): value is string => Boolean(value)))));
       })
       .catch(() => setCategories([]));
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -58,32 +81,80 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
 
   const tabs = useMemo(() => ([
     { label: 'Home', to: '/', icon: Home, active: location.pathname === '/' },
-    { label: 'Shop', to: '/marketplace', icon: LayoutGrid, active: marketplaceActive },
-    { label: 'Search', to: '/marketplace', icon: Search, active: false, search: true },
+    { label: 'Explore', to: '/marketplace', icon: LayoutGrid, active: marketplaceActive && !isProductDetail },
     { label: 'Wishlist', to: '/wishlist', icon: Heart, active: location.pathname.startsWith('/wishlist'), badge: wishCount },
+    { label: 'Cart', to: '/cart', icon: ShoppingBag, active: location.pathname.startsWith('/cart'), badge: itemCount },
     { label: 'Account', to: accountPath, icon: user ? UserRound : LogIn, active: location.pathname.startsWith('/login') || location.pathname.startsWith('/orders') || location.pathname.includes('dashboard') },
-  ]), [accountPath, location.pathname, marketplaceActive, user, wishCount]);
+  ]), [accountPath, isProductDetail, itemCount, location.pathname, marketplaceActive, user, wishCount]);
+
+  const BrandMark = (
+    <Link to="/" className="brand-mark flex min-w-0 items-center gap-2.5" onClick={() => setMenuOpen(false)}>
+      <span className="brand-mark-icon shrink-0" aria-hidden="true">
+        <svg viewBox="0 0 32 32" className="h-7 w-7">
+          <path fill="#2F3A64" d="M16 3.5c.6 3.6 2.6 6.4 6.1 8.1-3.5 1.6-5.5 4.5-6.1 8.1-.6-3.6-2.6-6.5-6.1-8.1C13.4 9.9 15.4 7.1 16 3.5Zm0 9.2c3.4.7 6.1 3.4 6.8 6.8-3.4.7-6.1 3.4-6.8 6.8-.7-3.4-3.4-6.1-6.8-6.8 3.4-.7 6.1-3.4 6.8-6.8Z" />
+        </svg>
+      </span>
+      <span className="min-w-0">
+        <span className="brand-mark-word block font-display text-[1.35rem] leading-none tracking-[-0.03em] text-charcoal md:text-[1.65rem]">ARTISAN</span>
+        <span className="mt-0.5 hidden text-[10px] font-medium tracking-[0.04em] text-stone-600 sm:block">Authentic crafts from India</span>
+      </span>
+    </Link>
+  );
 
   return (
-    <div className={`site-shell min-h-screen overflow-x-hidden bg-ivory text-charcoal ${showTabbar ? 'has-tabbar md:pb-0' : ''} ${className}`}>
+    <div className={`site-shell min-h-screen bg-ivory text-charcoal ${showTabbar ? 'has-tabbar md:pb-0' : ''} ${className}`}>
       <a href="#main-content" className="skip-link">Skip to content</a>
       <header className="site-header">
-        <div className="mx-auto flex max-w-market items-center gap-3 px-4 py-2.5 lg:gap-6 lg:px-8">
-          <Link to="/" className="brand-mark flex shrink-0 items-center gap-2.5">
-            <span className="brand-mark-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" className="h-7 w-7">
-                <path fill="#2F3A64" d="M16 3.5c.6 3.6 2.6 6.4 6.1 8.1-3.5 1.6-5.5 4.5-6.1 8.1-.6-3.6-2.6-6.5-6.1-8.1C13.4 9.9 15.4 7.1 16 3.5Zm0 9.2c3.4.7 6.1 3.4 6.8 6.8-3.4.7-6.1 3.4-6.8 6.8-.7-3.4-3.4-6.1-6.8-6.8 3.4-.7 6.1-3.4 6.8-6.8Z" />
+        <div className="mobile-header md:hidden">
+          <div className="flex items-center gap-1 px-2">
+            <button
+              type="button"
+              className="header-icon inline-flex"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <X className="h-5 w-5" strokeWidth={1.75} /> : <Menu className="h-5 w-5" strokeWidth={1.75} />}
+            </button>
+            <div className="flex min-w-0 flex-1 justify-center px-1">{BrandMark}</div>
+            <Link to="/wishlist" className={`header-icon inline-flex ${location.pathname.startsWith('/wishlist') ? 'is-active' : ''}`} aria-label={`Wishlist${wishCount ? `, ${wishCount} saved` : ''}`}>
+              <Heart className="h-5 w-5" strokeWidth={1.75} />
+              {wishCount > 0 && <span className="header-badge">{wishCount > 9 ? '9+' : wishCount}</span>}
+            </Link>
+            <Link to="/cart" className={`header-icon inline-flex ${location.pathname.startsWith('/cart') || location.pathname.startsWith('/checkout') ? 'is-active' : ''}`} aria-label={`Cart${itemCount ? `, ${itemCount} items` : ''}`}>
+              <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
+              {itemCount > 0 && <span className="header-badge">{itemCount > 9 ? '9+' : itemCount}</span>}
+            </Link>
+          </div>
+          <form onSubmit={submitSearch} className={`px-3 pb-2.5 pt-1 ${isAppChrome ? 'hidden' : ''}`}>
+            <div className="market-search market-search-mobile">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-stone-500" fill="none" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.75" />
+                <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
               </svg>
-            </span>
-            <span>
-              <span className="brand-mark-word block font-display text-[1.45rem] leading-none tracking-[-0.03em] text-charcoal md:text-[1.65rem]">ARTISAN</span>
-              <span className="mt-0.5 hidden text-[10px] font-medium tracking-[0.04em] text-stone-600 sm:block">Authentic crafts from India</span>
-            </span>
-          </Link>
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={SEARCH_PLACEHOLDER}
+                enterKeyHint="search"
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-stone-500"
+                aria-label="Search the marketplace"
+              />
+            </div>
+          </form>
+        </div>
 
-          <form onSubmit={submitSearch} className="hidden min-w-0 flex-1 md:flex">
+        <div className="mx-auto hidden max-w-market items-center gap-3 px-4 py-2.5 md:flex lg:gap-6 lg:px-8">
+          {BrandMark}
+          <form onSubmit={submitSearch} className="min-w-0 flex-1">
             <div className="market-search w-full">
-              <Search className="h-4 w-4 shrink-0 text-stone-500" strokeWidth={1.75} />
+              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-stone-500" fill="none" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.75" />
+                <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+              </svg>
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -92,11 +163,13 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
                 aria-label="Search the marketplace"
               />
               <button type="submit" className="market-search-submit" aria-label="Search">
-                <Search className="h-4 w-4" strokeWidth={2} />
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                  <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
               </button>
             </div>
           </form>
-
           <div className="ml-auto flex items-center gap-0.5">
             <Link to={accountPath} className={`header-action ${location.pathname.startsWith('/login') || location.pathname.startsWith('/orders') || location.pathname.includes('dashboard') ? 'is-active' : ''}`}>
               <UserRound className="h-5 w-5" strokeWidth={1.75} />
@@ -106,10 +179,6 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
               <Heart className="h-5 w-5" strokeWidth={1.75} />
               Wishlist
               {wishCount > 0 && <span className="header-badge">{wishCount > 9 ? '9+' : wishCount}</span>}
-            </Link>
-            <Link to="/cart" className={`header-icon inline-flex md:hidden ${location.pathname.startsWith('/cart') || location.pathname.startsWith('/checkout') ? 'is-active' : ''}`} aria-label={`Cart${itemCount ? `, ${itemCount} items` : ''}`}>
-              <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
-              {itemCount > 0 && <span className="header-badge">{itemCount > 9 ? '9+' : itemCount}</span>}
             </Link>
             <Link to="/cart" className={`header-action relative ${location.pathname.startsWith('/cart') || location.pathname.startsWith('/checkout') ? 'is-active' : ''}`}>
               <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
@@ -124,20 +193,6 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
             )}
           </div>
         </div>
-
-        <form onSubmit={submitSearch} className="px-4 pb-2.5 md:hidden">
-          <div className="market-search">
-            <Search className="h-4 w-4 shrink-0 text-stone-500" strokeWidth={1.75} />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={SEARCH_PLACEHOLDER}
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-500"
-              aria-label="Search the marketplace"
-            />
-          </div>
-        </form>
 
         {!isAppChrome && (
           <nav className="category-nav hidden md:block" aria-label="Marketplace">
@@ -159,9 +214,47 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
         )}
       </header>
 
-      <main id="main-content" key={location.pathname} className="page-transition">{children}</main>
+      {!online && (
+        <div className="offline-banner" role="status">
+          You’re offline. Live products and prices are unavailable until you reconnect.
+        </div>
+      )}
 
-      <footer className="mt-10 border-t border-stone-300 bg-cream">
+      {menuOpen && (
+        <div className="mobile-drawer-root md:hidden">
+          <button type="button" className="filter-overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
+          <nav className="mobile-drawer" aria-label="Marketplace menu">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Browse</p>
+            <Link to="/" className="mobile-drawer-link">Home</Link>
+            <Link to="/marketplace" className="mobile-drawer-link">Explore the marketplace</Link>
+            <Link to="/wishlist" className="mobile-drawer-link">Wishlist</Link>
+            <Link to="/cart" className="mobile-drawer-link">Cart</Link>
+            <Link to={accountPath} className="mobile-drawer-link">{accountLabel}</Link>
+            {user && profile && <Link to="/orders" className="mobile-drawer-link">Orders</Link>}
+            {categories.length > 0 && (
+              <>
+                <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Categories</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {categories.map((category) => (
+                    <Link key={category} to={`/marketplace?category=${encodeURIComponent(category)}`} className="suggestion-chip min-h-11">
+                      {category}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+            {user && profile && (
+              <button type="button" onClick={() => { void logout(); setMenuOpen(false); }} className="mt-8 text-sm font-semibold text-stone-600">
+                Sign out
+              </button>
+            )}
+          </nav>
+        </div>
+      )}
+
+      <main id="main-content" key={location.pathname} className="page-transition min-w-0">{children}</main>
+
+      <footer className="mt-10 hidden border-t border-stone-300 bg-cream md:block">
         <div className="mx-auto grid max-w-market gap-10 px-4 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div className="sm:col-span-2">
             <p className="font-display text-3xl tracking-[-0.03em]">ARTISAN</p>
@@ -199,18 +292,11 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
             <Link
               key={tab.label}
               to={tab.to}
-              onClick={(event) => {
-                if (tab.search) {
-                  event.preventDefault();
-                  searchRef.current?.focus();
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
               className={`mobile-tab relative ${tab.active ? 'is-active' : ''}`}
             >
               <tab.icon className="h-5 w-5" strokeWidth={1.75} />
               <span>{tab.label}</span>
-              {tab.badge ? <span className="header-badge right-1/4 top-1">{tab.badge > 9 ? '9+' : tab.badge}</span> : null}
+              {tab.badge ? <span className="header-badge right-[18%] top-0.5">{tab.badge > 9 ? '9+' : tab.badge}</span> : null}
             </Link>
           ))}
         </nav>

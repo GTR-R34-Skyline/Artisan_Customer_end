@@ -49,7 +49,7 @@ const OrdersPage: React.FC = () => {
   return (
     <div className="mx-auto max-w-market px-4 pb-20 pt-8 lg:px-8 lg:pt-12">
       <Eyebrow>Your account</Eyebrow>
-      <h1 className="mt-3 font-display text-4xl tracking-[-0.03em] text-charcoal sm:text-5xl">Past orders</h1>
+      <h1 className="mt-2 font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl md:mt-3">Past orders</h1>
       <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
         Orders placed with {profile?.full_name || user.email}. Open an order for payment, confirmation, or to buy the piece again.
       </p>

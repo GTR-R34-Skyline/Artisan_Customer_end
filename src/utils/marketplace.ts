@@ -17,7 +17,7 @@ export const PRICE_RANGES = [
 
 export type PriceRangeId = (typeof PRICE_RANGES)[number]['id'];
 
-export const SEARCH_PLACEHOLDER = 'Search pottery, Kalamkari, brass lamps, toys…';
+export const SEARCH_PLACEHOLDER = 'Search pottery, Kalamkari, brass lamps…';
 
 export const CRAFT_NOTES: Record<string, string> = {
   Handloom: 'Handloom textiles are woven on traditional looms, with pattern and texture decided by the weaver’s hand rather than a machine.',
@@ -60,6 +60,7 @@ export interface MarketplaceFilters {
   search?: string;
   category?: string;
   region?: string;
+  craft?: string;
   material?: string;
   price?: string;
 }
@@ -68,6 +69,7 @@ export const filterListings = (listings: MarketplaceListing[], filters: Marketpl
   const search = filters.search?.toLowerCase().trim() || '';
   const category = filters.category || '';
   const region = filters.region || '';
+  const craft = filters.craft || '';
   const material = filters.material || '';
   const price = filters.price || '';
 
@@ -75,10 +77,63 @@ export const filterListings = (listings: MarketplaceListing[], filters: Marketpl
     if (search && !listingSearchBlob(listing).includes(search)) return false;
     if (category && listing.category !== category) return false;
     if (region && listing.artisan?.location_state !== region) return false;
+    if (craft && listing.artisan?.craft_type !== craft && listing.category !== craft) return false;
     if (material && listing.material !== material) return false;
     if (price && !matchesPriceRange(getProductPrice(listing), price)) return false;
     return true;
   });
+};
+
+const STATE_ZONES: Record<string, string> = {
+  Rajasthan: 'West',
+  Gujarat: 'West',
+  Maharashtra: 'West',
+  Goa: 'West',
+  'Dadra and Nagar Haveli': 'West',
+  'Daman and Diu': 'West',
+  'Tamil Nadu': 'South',
+  Kerala: 'South',
+  Karnataka: 'South',
+  'Andhra Pradesh': 'South',
+  Telangana: 'South',
+  Puducherry: 'South',
+  'Andaman and Nicobar Islands': 'South',
+  'West Bengal': 'East',
+  Odisha: 'East',
+  Bihar: 'East',
+  Jharkhand: 'East',
+  Assam: 'East',
+  Sikkim: 'East',
+  Meghalaya: 'East',
+  Manipur: 'East',
+  Mizoram: 'East',
+  Nagaland: 'East',
+  Tripura: 'East',
+  'Arunachal Pradesh': 'East',
+  Punjab: 'North',
+  Haryana: 'North',
+  Delhi: 'North',
+  'Uttar Pradesh': 'North',
+  Uttarakhand: 'North',
+  'Himachal Pradesh': 'North',
+  'Jammu and Kashmir': 'North',
+  Ladakh: 'North',
+  Chandigarh: 'North',
+  'Madhya Pradesh': 'Central',
+  Chhattisgarh: 'Central',
+};
+
+export const zoneForState = (state: string) => STATE_ZONES[state] || 'India';
+
+export const groupedStates = (states: string[]) => {
+  const groups = new Map<string, string[]>();
+  states.forEach((state) => {
+    const zone = zoneForState(state);
+    const list = groups.get(zone) || [];
+    list.push(state);
+    groups.set(zone, list);
+  });
+  return Array.from(groups.entries()).map(([zone, items]) => ({ zone, items }));
 };
 
 export const pickFeaturedListings = (listings: MarketplaceListing[], count = 8) => {
