@@ -25,10 +25,9 @@ const CheckoutPage: React.FC = () => {
   if (!user) {
     return (
       <div className="mx-auto max-w-market px-4 py-16 lg:px-8">
-        <EmptyState title="Sign in to continue." description="Checkout is available to signed-in collectors." />
-        <div className="mt-8">
+        <EmptyState title="Sign in to continue." description="Checkout is available to signed-in collectors.">
           <Button onClick={() => navigate('/login', { state: { from: { pathname: '/checkout' } } })}>Sign in</Button>
-        </div>
+        </EmptyState>
       </div>
     );
   }
@@ -36,10 +35,9 @@ const CheckoutPage: React.FC = () => {
   if (!items.length) {
     return (
       <div className="mx-auto max-w-market px-4 py-16 lg:px-8">
-        <EmptyState title="Your cart is empty." description="Add a piece before proceeding to checkout." />
-        <div className="mt-8">
+        <EmptyState title="Your cart is empty." description="Add a piece before proceeding to checkout.">
           <Button onClick={() => navigate('/marketplace')}>Browse collection</Button>
-        </div>
+        </EmptyState>
       </div>
     );
   }

@@ -17,10 +17,9 @@ const CartPage: React.FC = () => {
           <EmptyState
             title="Your cart is empty."
             description="Browse the marketplace and add a handmade piece to begin checkout."
-          />
-        </div>
-        <div className="mt-8">
-          <Button onClick={() => navigate('/marketplace')}>Browse marketplace</Button>
+          >
+            <Button onClick={() => navigate('/marketplace')}>Browse marketplace</Button>
+          </EmptyState>
         </div>
       </div>
     );
@@ -29,7 +28,7 @@ const CartPage: React.FC = () => {
   return (
     <div className="mx-auto max-w-market px-4 pb-20 pt-8 lg:px-8 lg:pt-12">
       <Eyebrow>Your cart</Eyebrow>
-      <h1 className="mt-3 font-display text-4xl tracking-[-0.03em] text-charcoal sm:text-5xl">Selected work</h1>
+      <h1 className="mt-3 font-display text-4xl tracking-[-0.03em] text-charcoal sm:text-5xl">Your cart</h1>
       <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
         Review your selection before checkout and mock UPI payment.
       </p>

@@ -1,230 +1,254 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, HeartHandshake, MapPin, Sparkles } from 'lucide-react';
-import { ArrowButton, Reveal, SectionHeading } from '../components/DesignSystem';
+import React, { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Search } from 'lucide-react';
+import { ArrowButton, ProductSkeleton, Reveal, SectionHeading } from '../components/DesignSystem';
 import { ProductCard } from '../components/ProductCard';
+import { ArtisanCard } from '../components/marketplace/ArtisanCard';
 import { getMarketplaceListings } from '../services/marketplace.service';
 import { getProductImage, MarketplaceListing } from '../types/marketplace';
-
-const homepageCards = [
-  {
-    category: 'Folk sculpture',
-    title: 'Painted stories.',
-    src: '/images/folk-elephants.png',
-    content: 'Color, line, and form turn everyday objects into keepable stories.',
-  },
-  {
-    category: 'Natural fibre',
-    title: 'Woven utility.',
-    src: '/images/woven-baskets.jpg',
-    content: 'Patiently built forms that carry the rhythm of the hands that made them.',
-  },
-  {
-    category: 'Embroidered textiles',
-    title: 'Threaded memory.',
-    src: '/images/embroidered-textile.png',
-    content: 'Texture and pattern gathered into pieces with a quiet, tactile presence.',
-  },
-  {
-    category: 'Adornment',
-    title: 'Color in circles.',
-    src: '/images/colorful-bangles.jpg',
-    content: 'Small gestures of color, made to move with the people who wear them.',
-  },
-  {
-    category: 'Handloom',
-    title: 'The rhythm of the loom.',
-    src: '/images/handloom-weaving.png',
-    content: 'A close study of material, repetition, and the beauty of making slowly.',
-  },
-];
-
-const categoryFallback: Record<string, string> = {
-  Handloom: '/images/handloom-weaving.png',
-};
+import {
+  craftNotesForCatalog,
+  listingsByCategory,
+  listingsByRegion,
+  pickFeaturedListings,
+  SEARCH_PLACEHOLDER,
+  uniqueArtisans,
+  uniqueValues,
+} from '../utils/marketplace';
 
 const HomePage: React.FC = () => {
+  const navigate = useNavigate();
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
-  const [heroIndex, setHeroIndex] = useState(0);
-  const [heroPaused, setHeroPaused] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     getMarketplaceListings()
       .then(setListings)
-      .catch(() => setListings([]));
+      .catch(() => setListings([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (heroPaused) return undefined;
-    const timer = window.setInterval(() => {
-      setHeroIndex((current) => (current + 1) % homepageCards.length);
-    }, 5200);
-    return () => window.clearInterval(timer);
-  }, [heroPaused]);
+  const categories = useMemo(() => listingsByCategory(listings), [listings]);
+  const regions = useMemo(() => listingsByRegion(listings), [listings]);
+  const featured = useMemo(() => pickFeaturedListings(listings, 8), [listings]);
+  const makers = useMemo(() => uniqueArtisans(listings).slice(0, 4), [listings]);
+  const crafts = useMemo(() => craftNotesForCatalog(listings), [listings]);
+  const materials = useMemo(() => uniqueValues(listings, (listing) => listing.material).slice(0, 4), [listings]);
+  const heroImages = useMemo(
+    () => featured.map(getProductImage).filter((value): value is string => Boolean(value)).slice(0, 3),
+    [featured],
+  );
 
-  const activeHero = homepageCards[heroIndex];
-  const showHero = (direction: number) => {
-    setHeroIndex((current) => (current + direction + homepageCards.length) % homepageCards.length);
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault();
+    const next = query.trim();
+    navigate(next ? `/marketplace?q=${encodeURIComponent(next)}` : '/marketplace');
   };
 
-  const categories = useMemo(() => {
-    const byCategory = new Map<string, MarketplaceListing[]>();
-    listings.forEach((listing) => {
-      if (!listing.category) return;
-      const group = byCategory.get(listing.category) || [];
-      group.push(listing);
-      byCategory.set(listing.category, group);
-    });
-    const fromListings = Array.from(byCategory.entries()).map(([name, items]) => ({
-      name,
-      image: getProductImage(items[0]) || categoryFallback[name] || '/images/handloom-weaving.png',
-    }));
-    return fromListings;
-  }, [listings]);
-
-  const featured = listings.slice(0, 10);
-  const makers = useMemo(() => {
-    const seen = new Map<string, MarketplaceListing>();
-    listings.forEach((listing) => {
-      if (listing.artisan?.id && !seen.has(listing.artisan.id)) {
-        seen.set(listing.artisan.id, listing);
-      }
-    });
-    return Array.from(seen.values()).slice(0, 4);
-  }, [listings]);
+  const suggestions = [
+    ...categories.slice(0, 3).map((item) => ({ label: item.name, to: `/marketplace?category=${encodeURIComponent(item.name)}` })),
+    ...regions.slice(0, 2).map((item) => ({ label: item.name, to: `/marketplace?region=${encodeURIComponent(item.name)}` })),
+    ...materials.map((item) => ({ label: item, to: `/marketplace?material=${encodeURIComponent(item)}` })),
+  ].slice(0, 6);
 
   return (
     <div className="home-page">
-      <section className="mx-auto max-w-market px-4 pt-4 lg:px-8 lg:pt-6">
-        <div
-          className="hero-carousel relative overflow-hidden rounded-[1.5rem] bg-sand"
-          onMouseEnter={() => setHeroPaused(true)}
-          onMouseLeave={() => setHeroPaused(false)}
-        >
-          {homepageCards.map((card, index) => (
-            <img
-              key={card.src}
-              src={card.src}
-              alt={card.title}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${index === heroIndex ? 'opacity-100' : 'opacity-0'}`}
-            />
-          ))}
-          <div className="absolute inset-0 bg-gradient-to-r from-charcoal/80 via-charcoal/35 to-transparent" />
-          <div className="relative z-10 flex h-[28rem] flex-col justify-end p-6 sm:h-[32rem] sm:justify-center sm:p-10 lg:h-[36rem] lg:p-16">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-terracotta-light">Handmade marketplace · Across India</p>
-            <h1 className="hero-title mt-3 max-w-xl font-display text-4xl leading-[1.08] tracking-[-0.03em] text-cream sm:text-5xl lg:text-6xl">
-              Crafted by Hands, Powered by Possibilities
+      <section className="mx-auto max-w-market px-4 pt-6 lg:px-8 lg:pt-10">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo">India’s artisan marketplace</p>
+            <h1 className="hero-title mt-4 max-w-xl font-display text-[2.35rem] leading-[1.08] tracking-[-0.035em] text-charcoal sm:text-5xl lg:text-[3.4rem]">
+              India’s modern marketplace for authentic artisan-made products.
             </h1>
-            <p className="mt-4 max-w-md text-sm leading-6 text-cream/85 sm:text-base">
-              Discover authentic handmade products from India’s talented artisans.
+            <p className="mt-5 max-w-lg text-sm leading-7 text-stone-600 sm:text-base">
+              Shop pottery, textiles, jewellery, woodcraft, and regional crafts — made by independent artisans, found by craft, material, and place.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <ArrowButton to="/marketplace">Shop Now</ArrowButton>
-              <a href="#makers" className="button-light inline-flex min-h-11 items-center rounded-full border-cream/40 bg-cream/10 px-5 text-sm font-semibold text-cream">
-                Meet Our Artisans
-              </a>
-            </div>
-            <p className="mt-8 max-w-sm text-xs leading-5 text-cream/75">
-              {activeHero.category} · {activeHero.title}
-            </p>
-          </div>
-          <button type="button" className="hero-carousel-nav left-3" aria-label="Previous craft" onClick={() => showHero(-1)}>
-            <ChevronLeft className="h-5 w-5" strokeWidth={1.75} />
-          </button>
-          <button type="button" className="hero-carousel-nav right-3" aria-label="Next craft" onClick={() => showHero(1)}>
-            <ChevronRight className="h-5 w-5" strokeWidth={1.75} />
-          </button>
-          <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 gap-2">
-            {homepageCards.map((card, index) => (
-              <button
-                key={card.src}
-                type="button"
-                aria-label={`Show ${card.category}`}
-                onClick={() => setHeroIndex(index)}
-                className={`h-1.5 rounded-full transition-all ${index === heroIndex ? 'w-7 bg-cream' : 'w-2.5 bg-cream/45'}`}
+            <form onSubmit={submitSearch} className="market-search mt-7 max-w-xl">
+              <Search className="h-4 w-4 shrink-0 text-stone-500" strokeWidth={1.75} />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={SEARCH_PLACEHOLDER}
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-500"
+                aria-label="Search the marketplace"
               />
-            ))}
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { icon: BadgeCheck, label: 'Authentic Handmade' },
-            { icon: HeartHandshake, label: 'Support Local Artisans' },
-            { icon: Sparkles, label: 'Smart Discovery' },
-            { icon: MapPin, label: 'Made Across India' },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center gap-2 rounded-2xl bg-cream px-3 py-3 text-xs font-semibold text-stone-700 sm:text-sm">
-              <item.icon className="h-4 w-4 shrink-0 text-terracotta" strokeWidth={1.75} />
-              {item.label}
+              <button type="submit" className="market-search-submit !w-auto !rounded-md px-4 text-xs font-semibold">
+                Search
+              </button>
+            </form>
+            {suggestions.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {suggestions.map((item) => (
+                  <Link key={item.to + item.label} to={item.to} className="suggestion-chip">
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+            <div className="mt-7 flex flex-wrap gap-3">
+              <ArrowButton to="/marketplace">Shop the collection</ArrowButton>
+              {makers.length > 0 && (
+                <a href="#makers" className="button-light inline-flex min-h-11 items-center rounded-md px-5 text-sm font-semibold">
+                  Meet the artisans
+                </a>
+              )}
             </div>
-          ))}
+          </div>
+
+          <div className="hero-gallery">
+            {heroImages.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="image-frame aspect-[4/5]">
+                  <img src={heroImages[0]} alt="" className="h-full w-full object-cover" />
+                </div>
+                <div className="grid gap-3 sm:gap-4">
+                  <div className="image-frame aspect-[5/4]">
+                    <img src={heroImages[1] || heroImages[0]} alt="" className="h-full w-full object-cover" />
+                  </div>
+                  <div className="image-frame aspect-[5/4]">
+                    <img src={heroImages[2] || heroImages[0]} alt="" className="h-full w-full object-cover" />
+                  </div>
+                </div>
+              </div>
+            ) : loading ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="skeleton-block aspect-[4/5]" />
+                <div className="grid gap-3">
+                  <div className="skeleton-block aspect-[5/4]" />
+                  <div className="skeleton-block aspect-[5/4]" />
+                </div>
+              </div>
+            ) : (
+              <div className="flex aspect-[4/3] items-end bg-sand p-8">
+                <p className="font-display text-3xl leading-tight text-stone-700">Handmade work from across India.</p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
       {categories.length > 0 && (
-      <section id="categories" className="mx-auto max-w-market px-4 py-10 lg:px-8 lg:py-14">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <h2 className="market-section-title">Shop by Category</h2>
-          <Link to="/marketplace" className="text-sm font-semibold text-terracotta">View All</Link>
-        </div>
-        <div className="flex gap-5 overflow-x-auto pb-2 hide-scrollbar lg:grid lg:grid-cols-8 lg:overflow-visible">
-          {categories.map((category) => (
-            <Link key={category.name} to={`/marketplace?category=${encodeURIComponent(category.name)}`} className="flex w-[5.5rem] shrink-0 flex-col items-center gap-2 text-center">
-              <span className="block h-[5.5rem] w-[5.5rem] overflow-hidden rounded-full border border-stone-300 bg-sand shadow-card">
-                <img src={category.image} alt="" className="h-full w-full object-cover transition duration-500 hover:scale-105" />
-              </span>
-              <span className="text-xs font-semibold text-charcoal">{category.name}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+        <section id="categories" className="mx-auto max-w-market px-4 py-14 lg:px-8 lg:py-20">
+          <SectionHeading
+            eyebrow="Shop by category"
+            title="Find a craft."
+            description="Browse the collection the way it is made — by the work itself."
+            action={<Link to="/marketplace" className="text-sm font-semibold text-indigo">View all</Link>}
+          />
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+            {categories.map((category) => {
+              const image = getProductImage(category.items[0]);
+              return (
+                <Link key={category.name} to={`/marketplace?category=${encodeURIComponent(category.name)}`} className="category-card">
+                  <div className="aspect-[5/4] overflow-hidden bg-sand">
+                    {image ? (
+                      <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="flex h-full items-end p-4">
+                        <span className="font-display text-xl">{category.name}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 px-3 py-3">
+                    <p className="font-medium text-charcoal">{category.name}</p>
+                    <p className="text-xs text-stone-500">{category.count}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
 
-      <section className="mx-auto max-w-market px-4 pb-12 lg:px-8 lg:pb-16">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <h2 className="market-section-title">Featured Products</h2>
-          <Link to="/marketplace" className="inline-flex items-center gap-1 text-sm font-semibold text-terracotta">
-            View All <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
-          </Link>
-        </div>
-        {featured.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-5">
+      {regions.length > 0 && (
+        <section id="regions" className="bg-cream py-14 lg:py-20">
+          <div className="mx-auto max-w-market px-4 lg:px-8">
+            <SectionHeading
+              eyebrow="Explore India through its crafts"
+              title="Shop by region."
+              description="Every piece carries a place. Discover the collection by the state it comes from."
+            />
+            <div className="mt-8 flex gap-4 overflow-x-auto pb-2 hide-scrollbar sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-5">
+              {regions.map((region) => {
+                const image = getProductImage(region.items[0]);
+                return (
+                  <Link key={region.name} to={`/marketplace?region=${encodeURIComponent(region.name)}`} className="region-card w-[11.5rem] shrink-0 sm:w-auto">
+                    <div className="aspect-[4/3] overflow-hidden bg-sand">
+                      {image ? <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" /> : null}
+                    </div>
+                    <div className="px-3 py-3">
+                      <p className="font-display text-xl text-charcoal">{region.name}</p>
+                      <p className="mt-0.5 text-xs text-stone-500">{region.count} {region.count === 1 ? 'piece' : 'pieces'}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="mx-auto max-w-market px-4 py-14 lg:px-8 lg:py-20">
+        <SectionHeading
+          eyebrow="The collection"
+          title="Featured pieces."
+          description="A cross-section of the marketplace — real work from independent makers."
+          action={(
+            <Link to="/marketplace" className="inline-flex items-center gap-1 text-sm font-semibold text-indigo">
+              Shop all <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
+            </Link>
+          )}
+        />
+        {loading ? (
+          <div className="mt-8"><ProductSkeleton count={8} /></div>
+        ) : featured.length > 0 ? (
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {featured.map((listing, index) => (
-              <Reveal key={listing.id} delay={`${Math.min(index, 6) * 50}ms`}>
-                <ProductCard listing={listing} compact />
+              <Reveal key={listing.id} delay={`${Math.min(index, 6) * 40}ms`}>
+                <ProductCard listing={listing} compact priority={index < 4} />
               </Reveal>
             ))}
           </div>
         ) : (
-          <p className="rounded-card border border-dashed border-stone-300 bg-cream px-5 py-10 text-sm text-stone-600">
+          <p className="mt-8 border border-dashed border-stone-300 bg-cream px-5 py-12 text-sm text-stone-600">
             Published work will appear here as the collection grows.
           </p>
         )}
       </section>
 
       {makers.length > 0 && (
-        <section id="makers" className="bg-cream py-12 lg:py-16">
+        <section id="makers" className="bg-cream py-14 lg:py-20">
           <div className="mx-auto max-w-market px-4 lg:px-8">
-            <SectionHeading title="Meet Our Artisans" description="You are not only buying a product. You are discovering the person and craft behind it." />
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <SectionHeading
+              eyebrow="The makers"
+              title="Discover artisans."
+              description="You are not only buying a product. You are meeting the person and craft behind it."
+            />
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
               {makers.map((listing) => (
-                <Link key={listing.artisan?.id} to={`/craftsman/${listing.artisan?.id}`} className="panel overflow-hidden">
-                  <div className="aspect-[4/3] overflow-hidden bg-sand">
-                    <img src={getProductImage(listing) || '/images/handloom-weaving.png'} alt={listing.artisan?.full_name || 'Artisan'} className="h-full w-full object-cover transition duration-500 hover:scale-105" />
-                  </div>
-                  <div className="px-4 py-4">
-                    <p className="font-display text-2xl text-charcoal">{listing.artisan?.full_name || 'Independent artisan'}</p>
-                    <p className="mt-1 text-sm text-stone-600">{listing.category || 'Handmade craft'}</p>
-                    {listing.artisan?.location_state && (
-                      <p className="mt-2 inline-flex items-center gap-1 text-xs text-stone-500">
-                        <MapPin className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        {listing.artisan.location_state}
-                      </p>
-                    )}
-                  </div>
-                </Link>
+                <ArtisanCard key={listing.artisan?.id} listing={listing} />
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {crafts.length > 0 && (
+        <section className="mx-auto max-w-market px-4 py-14 pb-20 lg:px-8 lg:py-20 lg:pb-24">
+          <SectionHeading
+            eyebrow="Crafts of India"
+            title="Traditions, still being made."
+            description="A short guide to the crafts currently in the collection — so you know what you are looking at."
+          />
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {crafts.map((craft) => (
+              <Link key={craft.name} to={`/marketplace?category=${encodeURIComponent(craft.name)}`} className="craft-note">
+                <p className="font-display text-2xl text-charcoal">{craft.name}</p>
+                <p className="mt-3 text-sm leading-7 text-stone-600">{craft.note}</p>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-indigo">Shop {craft.name}</p>
+              </Link>
+            ))}
           </div>
         </section>
       )}

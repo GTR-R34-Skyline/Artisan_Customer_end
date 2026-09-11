@@ -27,8 +27,9 @@ const WishlistPage: React.FC = () => {
           <EmptyState
             title="Nothing saved yet."
             description="Tap the heart on a product to keep it here while you browse."
-          />
-          <Button onClick={() => navigate('/marketplace')}>Browse marketplace</Button>
+          >
+            <Button onClick={() => navigate('/marketplace')}>Browse marketplace</Button>
+          </EmptyState>
         </div>
       )}
     </div>

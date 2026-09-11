@@ -47,7 +47,7 @@ const Login: React.FC = () => {
         <div className="space-y-6">
           <Eyebrow>Buyer sign in</Eyebrow>
           <h1 className="hero-title max-w-xl font-display text-4xl leading-[1.05] tracking-[-0.03em] sm:text-6xl">Welcome back.</h1>
-          <p className="max-w-md text-sm leading-7 text-stone-600">Sign in to checkout with mock UPI, save pieces, and keep your orders in one place.</p>
+          <p className="max-w-md text-sm leading-7 text-stone-600">Sign in to checkout, save pieces, and keep your orders in one place.</p>
         </div>
         <p className="mt-10 max-w-xs text-sm leading-6 text-stone-500">Checkout uses a simulated UPI payment. No real money is charged.</p>
       </div>

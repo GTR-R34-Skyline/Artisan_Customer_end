@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { CraftsmanProfile, MarketplaceListing } from '../types/marketplace';
+import { CraftsmanProfile, MarketplaceListing, MarketplaceProfile } from '../types/marketplace';
 
 const PUBLIC_STATUSES = ['approved', 'published', 'synced'];
 const PRODUCT_SELECT = `
@@ -18,6 +18,7 @@ const PRODUCT_SELECT = `
   suggested_price,
   quantity,
   stock_count,
+  labour_days,
   status,
   created_at,
   updated_at,
@@ -29,10 +30,44 @@ const PRODUCT_SELECT = `
   )
 `;
 
+type VendorRow = {
+  id: string;
+  craft_type: string | null;
+  gi_certified: boolean | null;
+  verification_status: string | null;
+};
+
 const normalizeListing = (row: unknown): MarketplaceListing => {
   const source = row as Record<string, unknown>;
   const artisanValue = Array.isArray(source.artisan) ? source.artisan[0] : source.artisan;
   return { ...source, artisan: artisanValue || null } as unknown as MarketplaceListing;
+};
+
+const enrichWithVendors = async (listings: MarketplaceListing[]): Promise<MarketplaceListing[]> => {
+  const ids = Array.from(new Set(listings.map((listing) => listing.vendor_id).filter((id): id is string => Boolean(id))));
+  if (!ids.length) return listings;
+
+  const { data, error } = await supabase
+    .from('vendors')
+    .select('id, craft_type, gi_certified, verification_status')
+    .in('id', ids);
+
+  if (error || !data) return listings;
+
+  const vendors = new Map((data as VendorRow[]).map((row) => [row.id, row]));
+  return listings.map((listing) => {
+    const vendor = listing.vendor_id ? vendors.get(listing.vendor_id) : undefined;
+    if (!vendor || !listing.artisan) return listing;
+    return {
+      ...listing,
+      artisan: {
+        ...listing.artisan,
+        craft_type: vendor.craft_type,
+        gi_certified: vendor.gi_certified,
+        verification_status: vendor.verification_status,
+      },
+    };
+  });
 };
 
 export const getMarketplaceListings = async (): Promise<MarketplaceListing[]> => {
@@ -46,7 +81,7 @@ export const getMarketplaceListings = async (): Promise<MarketplaceListing[]> =>
     throw error;
   }
 
-  return (data || []).map(normalizeListing);
+  return enrichWithVendors((data || []).map(normalizeListing));
 };
 
 export const getMarketplaceListing = async (productId: string): Promise<MarketplaceListing | null> => {
@@ -61,7 +96,9 @@ export const getMarketplaceListing = async (productId: string): Promise<Marketpl
     throw error;
   }
 
-  return data ? normalizeListing(data) : null;
+  if (!data) return null;
+  const [listing] = await enrichWithVendors([normalizeListing(data)]);
+  return listing;
 };
 
 export const getCraftsmanProfile = async (craftsmanId: string): Promise<CraftsmanProfile | null> => {
@@ -73,7 +110,7 @@ export const getCraftsmanProfile = async (craftsmanId: string): Promise<Craftsma
       .maybeSingle(),
     supabase
       .from('vendors')
-      .select('craft_type, verification_status')
+      .select('craft_type, verification_status, gi_certified')
       .eq('id', craftsmanId)
       .maybeSingle(),
     supabase
@@ -89,10 +126,22 @@ export const getCraftsmanProfile = async (craftsmanId: string): Promise<Craftsma
   if (productsError) throw productsError;
   if (!profile) return null;
 
+  const artisanExtras: Pick<MarketplaceProfile, 'craft_type' | 'gi_certified' | 'verification_status'> = {
+    craft_type: vendor?.craft_type || null,
+    gi_certified: vendor?.gi_certified ?? null,
+    verification_status: vendor?.verification_status || null,
+  };
+
+  const listings = (products || []).map((row) => {
+    const listing = normalizeListing(row);
+    return listing.artisan
+      ? { ...listing, artisan: { ...listing.artisan, ...artisanExtras } }
+      : listing;
+  });
+
   return {
     ...profile,
-    craft_type: vendor?.craft_type || null,
-    verification_status: vendor?.verification_status || null,
-    products: (products || []).map(normalizeListing),
+    ...artisanExtras,
+    products: listings,
   } as CraftsmanProfile;
 };

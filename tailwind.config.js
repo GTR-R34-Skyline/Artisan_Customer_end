@@ -43,7 +43,7 @@ export default {
         header: '0 8px 24px rgba(43, 39, 35, 0.04)',
       },
       borderRadius: {
-        card: '1rem',
+        card: '0.35rem',
       },
       maxWidth: {
         market: '1280px',

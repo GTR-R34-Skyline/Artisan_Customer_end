@@ -19,7 +19,7 @@
     --mustard: #c9a227;
     --forest: #3f6b52;
     --line: rgba(43, 39, 35, 0.12);
-    --radius: 1rem;
+    --radius: 0.5rem;
   }
 
   html {
@@ -30,10 +30,7 @@
   body {
     min-width: 320px;
     margin: 0;
-    background:
-      radial-gradient(1200px 420px at 8% -10%, rgba(184, 92, 56, 0.06), transparent 55%),
-      radial-gradient(900px 380px at 100% 0%, rgba(47, 58, 100, 0.05), transparent 50%),
-      #f6f1e8;
+    background: #f6f1e8;
     overflow-x: hidden;
   }
 
@@ -62,8 +59,8 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: 2px solid #b85c38;
-    outline-offset: 3px;
+  outline: 2px solid #2f3a64;
+  outline-offset: 3px;
   }
 }
 
@@ -90,12 +87,26 @@
   isolation: isolate;
 }
 
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 80;
+  padding: 0.6rem 1rem;
+  background: #2b2723;
+  color: #faf7f1;
+}
+
+.skip-link:focus {
+  top: 0.75rem;
+}
+
 .site-header {
   position: sticky;
   z-index: 30;
   top: 0;
-  background: rgba(246, 241, 232, 0.92);
-  box-shadow: 0 8px 24px rgba(43, 39, 35, 0.04);
+  background: rgba(246, 241, 232, 0.94);
+  border-bottom: 1px solid rgba(43, 39, 35, 0.08);
   backdrop-filter: blur(16px);
 }
 
@@ -109,9 +120,9 @@
   flex: 1;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.2rem 0.2rem 0.2rem 1rem;
-  border: 1px solid rgba(43, 39, 35, 0.12);
-  border-radius: 999px;
+  padding: 0.2rem 0.2rem 0.2rem 0.9rem;
+  border: 1px solid rgba(43, 39, 35, 0.14);
+  border-radius: 0.4rem;
   background: #faf7f1;
   transition: border-color 200ms ease, box-shadow 200ms ease;
 }
@@ -122,19 +133,25 @@ div.market-search {
   display: flex;
 }
 
+@media (max-width: 767px) {
+  form.market-search.hidden {
+    display: none;
+  }
+}
+
 .market-search-submit {
   display: inline-flex;
   height: 2.35rem;
-  width: 2.35rem;
+  min-width: 2.35rem;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  background: #b85c38;
+  border-radius: 0.3rem;
+  background: #2b2723;
   color: #faf7f1;
 }
 
 .market-search-submit:hover {
-  background: #9a4a2c;
+  background: #2f3a64;
 }
 
 .header-action {
@@ -157,12 +174,12 @@ div.market-search {
 
 .header-action:hover,
 .header-action.is-active {
-  color: #9a4a2c;
+  color: #2f3a64;
 }
 
 .market-search:focus-within {
-  border-color: #b85c38;
-  box-shadow: 0 0 0 4px rgba(184, 92, 56, 0.12);
+  border-color: #2f3a64;
+  box-shadow: 0 0 0 3px rgba(47, 58, 100, 0.12);
 }
 
 .category-nav {
@@ -183,7 +200,7 @@ div.market-search {
   left: 0;
   height: 2px;
   content: "";
-  background: #b85c38;
+  background: #2f3a64;
   transform: scaleX(0);
   transition: transform 220ms ease;
 }
@@ -211,8 +228,8 @@ div.market-search {
 
 .header-icon:hover,
 .header-icon.is-active {
-  background: rgba(184, 92, 56, 0.1);
-  color: #9a4a2c;
+  background: rgba(47, 58, 100, 0.08);
+  color: #2f3a64;
 }
 
 .header-badge {
@@ -241,7 +258,7 @@ div.market-search {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 0.28rem;
   border: 1px solid rgba(43, 39, 35, 0.1);
-  border-radius: 1.15rem;
+  border-radius: 0.85rem;
   background: rgba(250, 247, 241, 0.96);
   box-shadow: 0 12px 32px rgba(43, 39, 35, 0.12);
   backdrop-filter: blur(16px);
@@ -263,8 +280,8 @@ div.market-search {
 
 .mobile-tab.is-active,
 .mobile-tab:hover {
-  background: rgba(184, 92, 56, 0.1);
-  color: #9a4a2c;
+  background: rgba(47, 58, 100, 0.08);
+  color: #2f3a64;
 }
 
 .button-dark,
@@ -274,14 +291,13 @@ div.market-search {
 }
 
 .button-dark {
-  background: #b85c38;
+  background: #2b2723;
   color: #faf7f1;
 }
 
 .button-dark:hover:not(:disabled) {
-  background: #9a4a2c;
+  background: #2f3a64;
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(154, 74, 44, 0.22);
 }
 
 .button-dark:active:not(:disabled) {
@@ -307,13 +323,13 @@ div.market-search {
 }
 
 .button-text:hover:not(:disabled) {
-  border-color: #b85c38;
-  color: #b85c38;
+  border-color: #2f3a64;
+  color: #2f3a64;
 }
 
 .image-frame {
   overflow: hidden;
-  border-radius: 1rem;
+  border-radius: 0;
   background: #e8e0d4;
 }
 
@@ -345,7 +361,7 @@ div.market-search {
 .product-thumb {
   overflow: hidden;
   border: 1px solid rgba(43, 39, 35, 0.12);
-  border-radius: 0.85rem;
+  border-radius: 0.25rem;
   background: #e8e0d4;
 }
 
@@ -356,17 +372,7 @@ div.market-search {
 
 .product-card {
   overflow: hidden;
-  border: 1px solid rgba(43, 39, 35, 0.08);
-  border-radius: 1rem;
-  background: #faf7f1;
-  box-shadow: 0 8px 20px rgba(43, 39, 35, 0.04);
-  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 280ms ease, border-color 280ms ease;
-}
-
-.product-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(184, 92, 56, 0.28);
-  box-shadow: 0 16px 36px rgba(43, 39, 35, 0.1);
+  background: transparent;
 }
 
 .product-card img {
@@ -377,17 +383,24 @@ div.market-search {
   transform: scale(1.05);
 }
 
-.category-card {
+.category-card,
+.region-card,
+.artisan-card,
+.craft-note {
   overflow: hidden;
-  border: 1px solid rgba(43, 39, 35, 0.08);
-  border-radius: 1.1rem;
   background: #faf7f1;
-  transition: transform 280ms ease, box-shadow 280ms ease;
+  transition: transform 240ms ease, box-shadow 240ms ease;
 }
 
-.category-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 32px rgba(43, 39, 35, 0.1);
+.category-card:hover,
+.region-card:hover,
+.artisan-card:hover {
+  transform: translateY(-2px);
+}
+
+.craft-note {
+  padding: 1.4rem 1.25rem;
+  border-top: 1px solid rgba(43, 39, 35, 0.12);
 }
 
 .category-card img {
@@ -405,9 +418,9 @@ div.market-search {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(250, 247, 241, 0.92);
+  background: rgba(250, 247, 241, 0.94);
   color: #6f675e;
-  box-shadow: 0 6px 16px rgba(43, 39, 35, 0.1);
+  box-shadow: 0 4px 12px rgba(43, 39, 35, 0.08);
   transition: transform 180ms ease, color 180ms ease, background-color 180ms ease;
 }
 
@@ -423,9 +436,100 @@ div.market-search {
 
 .panel {
   border: 1px solid rgba(43, 39, 35, 0.1);
-  border-radius: 1.1rem;
+  border-radius: 0.35rem;
   background: #faf7f1;
-  box-shadow: 0 10px 28px rgba(43, 39, 35, 0.04);
+}
+
+.suggestion-chip {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(43, 39, 35, 0.12);
+  background: #faf7f1;
+  color: #524c45;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.suggestion-chip:hover {
+  border-color: #2f3a64;
+  color: #2f3a64;
+}
+
+.filter-group {
+  margin-bottom: 1.35rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid rgba(43, 39, 35, 0.08);
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.filter-legend {
+  margin-bottom: 0.65rem;
+  color: #2b2723;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.filter-option {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.55rem;
+  color: #524c45;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.filter-option input {
+  accent-color: #2f3a64;
+}
+
+.filter-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.filter-overlay {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(43, 39, 35, 0.38);
+}
+
+.filter-sheet {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 0.75rem 0.75rem 0 0;
+  background: #faf7f1;
+  box-shadow: 0 -12px 32px rgba(43, 39, 35, 0.12);
+}
+
+.skeleton-block,
+.skeleton-line {
+  background: linear-gradient(90deg, #ede6d9 0%, #f6f1e8 50%, #ede6d9 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 0.7rem;
+  border-radius: 0.15rem;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
 }
 
 .filter-bar {
@@ -452,9 +556,9 @@ div.market-search {
 .field:focus-within input,
 .field:focus-within textarea,
 .field:focus-within select {
-  border-color: #b85c38;
+  border-color: #2f3a64;
   background: #faf7f1;
-  box-shadow: 0 0 0 4px rgba(184, 92, 56, 0.1);
+  box-shadow: 0 0 0 3px rgba(47, 58, 100, 0.1);
 }
 
 .reveal {
@@ -489,7 +593,7 @@ div.market-search {
 
 .empty-state {
   border: 1px dashed rgba(43, 39, 35, 0.16);
-  border-radius: 1.1rem;
+  border-radius: 0.35rem;
   background: rgba(250, 247, 241, 0.7);
 }
 
@@ -926,6 +1030,11 @@ div.market-search {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .skeleton-block,
+  .skeleton-line {
+    animation: none;
+  }
+
   .reveal {
     opacity: 1;
     transform: none;

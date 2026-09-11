@@ -39,10 +39,9 @@ const OrdersPage: React.FC = () => {
   if (!user) {
     return (
       <div className="mx-auto max-w-market px-4 py-16 lg:px-8">
-        <EmptyState title="Sign in to see your orders." description="Past purchases are saved to the same buyer account you use at checkout." />
-        <div className="mt-8">
+        <EmptyState title="Sign in to see your orders." description="Past purchases are saved to the same buyer account you use at checkout.">
           <Button onClick={() => navigate('/login', { state: { from: { pathname: '/orders' } } })}>Sign in</Button>
-        </div>
+        </EmptyState>
       </div>
     );
   }
@@ -62,8 +61,9 @@ const OrdersPage: React.FC = () => {
           <EmptyState
             title="No orders yet."
             description="When you complete checkout with this account, those orders will appear here."
-          />
-          <Button onClick={() => navigate('/marketplace')}>Browse marketplace</Button>
+          >
+            <Button onClick={() => navigate('/marketplace')}>Browse marketplace</Button>
+          </EmptyState>
         </div>
       ) : (
         <div className="mt-10 space-y-5">
@@ -105,7 +105,7 @@ const OrdersPage: React.FC = () => {
                 </div>
 
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4">
-                  <p className="font-display text-2xl text-terracotta">{formatCurrency(entry.payment?.amount ?? entry.order.totalAmount)}</p>
+                  <p className="font-display text-2xl text-charcoal">{formatCurrency(entry.payment?.amount ?? entry.order.totalAmount)}</p>
                   <div className="flex flex-wrap gap-2">
                     {paid ? (
                       <Button variant="light" onClick={() => navigate(`/checkout/confirmation/${entry.order.id}`)}>View order</Button>

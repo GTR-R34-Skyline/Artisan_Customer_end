@@ -36,6 +36,9 @@ export interface MarketplaceProfile {
   full_name: string | null;
   location_state: string | null;
   preferred_language: string | null;
+  craft_type?: string | null;
+  gi_certified?: boolean | null;
+  verification_status?: string | null;
 }
 
 export interface MarketplaceListing extends MarketplaceProduct {
@@ -45,17 +48,30 @@ export interface MarketplaceListing extends MarketplaceProduct {
 export interface CraftsmanProfile extends MarketplaceProfile {
   craft_type: string | null;
   verification_status: string | null;
+  gi_certified?: boolean | null;
   products: MarketplaceListing[];
 }
 
 export const getProductTitle = (product: MarketplaceProduct) =>
   product.title_en || product.title || 'Untitled work';
 
+export const getProductStory = (product: MarketplaceProduct) =>
+  product.description_en || product.raw_description || null;
+
 export const getProductDescription = (product: MarketplaceProduct) =>
-  product.description_en || product.raw_description || 'The maker has not added a description yet.';
+  getProductStory(product) || 'The maker has not added a description yet.';
 
 export const getProductImage = (product: MarketplaceProduct) =>
   product.studio_image_url || product.enhanced_image_url || product.original_image_url;
 
 export const getProductPrice = (product: MarketplaceProduct) =>
   product.final_price ?? product.suggested_price;
+
+export const getProductCraft = (listing: MarketplaceListing) =>
+  listing.category || listing.artisan?.craft_type || null;
+
+export const getArtisanName = (listing: MarketplaceListing) =>
+  listing.artisan?.full_name || null;
+
+export const getArtisanLocation = (listing: MarketplaceListing) =>
+  listing.artisan?.location_state || null;
