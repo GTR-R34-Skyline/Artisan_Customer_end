@@ -8,6 +8,7 @@ import { getMarketplaceListings } from '../services/marketplace.service';
 import { getProductPrice, MarketplaceListing } from '../types/marketplace';
 import { useRefreshOnReconnect } from '../hooks/useOnlineStatus';
 import { filterListings, uniqueValues } from '../utils/marketplace';
+import { shopCategoryLabel } from '../utils/shopCategories';
 
 const MarketplacePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -104,7 +105,7 @@ const MarketplacePage: React.FC = () => {
 
   const chips = [
     search ? { key: 'q', label: `“${search}”` } : null,
-    values.category ? { key: 'category', label: values.category } : null,
+    values.category ? { key: 'category', label: shopCategoryLabel(values.category) } : null,
     values.region ? { key: 'region', label: values.region } : null,
     values.craft ? { key: 'craft', label: values.craft } : null,
     values.material ? { key: 'material', label: values.material } : null,
@@ -125,12 +126,12 @@ const MarketplacePage: React.FC = () => {
   return (
     <div className="marketplace-page mx-auto max-w-market px-4 pb-8 pt-5 md:pb-20 md:pt-8 lg:px-8 lg:pt-10">
       <header className="max-w-2xl space-y-2 md:space-y-3">
-        <Eyebrow>Marketplace</Eyebrow>
+        <Eyebrow>Shop</Eyebrow>
         <h1 className="font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl">
-          {values.region ? `Crafts from ${values.region}` : 'Handmade from across India.'}
+          {values.region ? `Crafts from ${values.region}` : 'Discover handcrafted products from across India.'}
         </h1>
         <p className="hidden text-sm leading-7 text-stone-600 md:block">
-          Search by product, craft, material, or place. Every listing is a piece from an independent maker.
+          Shop finished products by category, craft, region, and artisan. Material is available as a filter — not the main way to browse.
         </p>
       </header>
 
@@ -208,7 +209,7 @@ const MarketplacePage: React.FC = () => {
           {error && (
             <div className="mt-8">
               <EmptyState title="The collection could not be loaded." description={error}>
-                <button type="button" onClick={load} className="button-dark min-h-11 rounded-md px-5 text-sm font-semibold">
+                <button type="button" onClick={() => load()} className="button-dark min-h-11 rounded-md px-5 text-sm font-semibold">
                   Try again
                 </button>
               </EmptyState>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { groupedStates, PRICE_RANGES } from '../../utils/marketplace';
+import { shopCategoryLabel } from '../../utils/shopCategories';
 
 export interface FilterValues {
   category: string;
@@ -30,7 +31,8 @@ const FilterGroup: React.FC<{
   name: string;
   allLabel: string;
   onChange: (value: string) => void;
-}> = ({ legend, options, value, name, allLabel, onChange }) => {
+  getLabel?: (option: string) => string;
+}> = ({ legend, options, value, name, allLabel, onChange, getLabel }) => {
   if (!options.length) return null;
 
   return (
@@ -43,7 +45,7 @@ const FilterGroup: React.FC<{
       {options.map((option) => (
         <label key={option} className="filter-option">
           <input type="radio" name={name} checked={value === option} onChange={() => onChange(option)} />
-          <span>{option}</span>
+          <span>{getLabel ? getLabel(option) : option}</span>
         </label>
       ))}
     </fieldset>
@@ -81,6 +83,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         name={`${idPrefix}-category`}
         allLabel="All categories"
         onChange={(value) => onChange('category', value)}
+        getLabel={shopCategoryLabel}
       />
       <FilterGroup
         legend="State"
@@ -230,6 +233,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
             name="sheet-category"
             allLabel="All categories"
             onChange={(value) => updateDraft('category', value)}
+            getLabel={shopCategoryLabel}
           />
 
           {regions.length > 0 && (

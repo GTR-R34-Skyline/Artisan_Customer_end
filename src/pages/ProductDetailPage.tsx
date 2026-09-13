@@ -134,7 +134,7 @@ const ProductDetailPage: React.FC = () => {
           </h1>
           {artisan?.id && (
             <p className="mt-2 text-sm text-stone-600 md:mt-3">
-              Made by <Link to={`/craftsman/${artisan.id}`} className="font-semibold text-charcoal hover:text-indigo">{artisan.full_name || 'an independent artisan'}</Link>
+              Made by <Link to={`/craftsman/${artisan.id}`} className="font-semibold text-charcoal hover:text-royal">{artisan.full_name || 'an independent artisan'}</Link>
               {location ? ` · ${location}` : ''}
             </p>
           )}
@@ -168,8 +168,8 @@ const ProductDetailPage: React.FC = () => {
                   <Plus className="h-4 w-4" strokeWidth={1.75} />
                 </button>
               </div>
-              <Button onClick={() => addToCart(false)}>{added ? 'Added to cart' : 'Add to cart'}</Button>
-              <Button variant="light" onClick={() => addToCart(true)}>Buy now</Button>
+              <Button onClick={() => addToCart(false)}>{added ? 'Added to Cart' : 'Add to Cart'}</Button>
+              <Button variant="light" onClick={() => addToCart(true)}>Buy Now</Button>
               <button
                 type="button"
                 onClick={() => toggle(listing)}
@@ -257,10 +257,10 @@ const ProductDetailPage: React.FC = () => {
             </button>
           </div>
           <button type="button" onClick={() => addToCart(false)} className="button-dark min-h-12 flex-1 rounded-md px-3 text-sm font-semibold">
-            {added ? 'Added' : 'Add to cart'}
+            {added ? 'Added' : 'Add to Cart'}
           </button>
           <button type="button" onClick={() => addToCart(true)} className="button-light min-h-12 flex-1 rounded-md px-3 text-sm font-semibold">
-            Buy now
+            Buy Now
           </button>
         </div>
       )}

@@ -16,9 +16,9 @@ const CartPage: React.FC = () => {
         <div className="mt-8">
           <EmptyState
             title="Your cart is empty."
-            description="Browse the marketplace and add a handmade piece to begin checkout."
+            description="Discover handcrafted products and add something beautiful to begin checkout."
           >
-            <Button onClick={() => navigate('/marketplace')}>Browse marketplace</Button>
+            <Button onClick={() => navigate('/marketplace')}>Shop Now</Button>
           </EmptyState>
         </div>
       </div>

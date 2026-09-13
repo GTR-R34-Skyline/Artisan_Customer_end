@@ -440,6 +440,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const trimmed = email.trim();
+    if (!trimmed) throw new Error('Please enter your email address.');
+    const redirectTo = `${window.location.origin}/login`;
+    const { error } = await withTimeout(
+      supabase.auth.resetPasswordForEmail(trimmed, { redirectTo }),
+      AUTH_TIMEOUT_MS,
+      'Password reset',
+    );
+    if (error) throw error;
+  }, []);
+
   const logout = useCallback(async () => {
     setLoading(true);
     localStorage.removeItem('artisan_mock_session');
@@ -459,9 +471,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginAsVendor,
     loginWithEmail,
     signUpWithEmail,
+    requestPasswordReset,
     logout,
     fetchProfile
-  }), [user, profile, loading, loginAsVendor, loginWithEmail, signUpWithEmail, logout, fetchProfile]);
+  }), [user, profile, loading, loginAsVendor, loginWithEmail, signUpWithEmail, requestPasswordReset, logout, fetchProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>

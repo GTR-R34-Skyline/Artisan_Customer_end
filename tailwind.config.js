@@ -4,21 +4,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        ivory: '#F6F1E8',
-        cream: '#FAF7F1',
-        sand: '#EDE6D9',
+        ivory: '#F3EACC',
+        cream: '#FAF6EC',
+        parchment: '#F7F1E3',
+        sand: '#E8DFD0',
+        royal: {
+          DEFAULT: '#123C35',
+          mid: '#174A40',
+          deep: '#0F3D35',
+          soft: '#1A5248',
+        },
+        gold: {
+          DEFAULT: '#B08A45',
+          light: '#C2A15A',
+          muted: '#A98242',
+        },
         terracotta: {
           DEFAULT: '#B85C38',
           dark: '#9A4A2C',
+          deep: '#8B3A2A',
           light: '#E8C4B0',
         },
+        maroon: {
+          DEFAULT: '#5A1F24',
+          mid: '#681F26',
+        },
+        teal: {
+          DEFAULT: '#174A40',
+          deep: '#0F3D35',
+        },
         indigo: {
-          DEFAULT: '#2F3A64',
-          deep: '#1E2748',
-          soft: '#D8DCEB',
+          DEFAULT: '#174A40',
+          deep: '#0F3D35',
+          soft: '#D4E5E0',
         },
         mustard: '#C9A227',
-        forest: '#3F6B52',
+        forest: {
+          DEFAULT: '#123C35',
+          soft: '#3F6B52',
+        },
         charcoal: '#2B2723',
         stone: {
           950: '#2B2723',
@@ -40,10 +64,10 @@ export default {
       boxShadow: {
         card: '0 10px 28px rgba(43, 39, 35, 0.06)',
         lift: '0 16px 36px rgba(43, 39, 35, 0.1)',
-        header: '0 8px 24px rgba(43, 39, 35, 0.04)',
+        header: '0 8px 24px rgba(15, 61, 53, 0.18)',
       },
       borderRadius: {
-        card: '0.35rem',
+        card: '0.5rem',
       },
       maxWidth: {
         market: '1280px',

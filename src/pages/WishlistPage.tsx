@@ -25,10 +25,10 @@ const WishlistPage: React.FC = () => {
       ) : (
         <div className="mt-10 space-y-6">
           <EmptyState
-            title="Nothing saved yet."
+            title="Your wishlist is waiting for something beautiful."
             description="Tap the heart on a product to keep it here while you browse."
           >
-            <Button onClick={() => navigate('/marketplace')}>Browse marketplace</Button>
+            <Button onClick={() => navigate('/marketplace')}>Shop Now</Button>
           </EmptyState>
         </div>
       )}

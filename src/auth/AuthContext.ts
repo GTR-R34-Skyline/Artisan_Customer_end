@@ -17,6 +17,7 @@ export interface AuthContextType {
   loginAsVendor: (name: string, phone: string, language?: 'hi' | 'bn' | 'ta' | 'te' | 'en' | 'kn', locationState?: string) => Promise<UserProfile | null>;
   loginWithEmail: (email: string, password: string, expectedRole?: 'consumer' | 'admin') => Promise<UserProfile>;
   signUpWithEmail: (email: string, password: string, fullName: string, role: 'consumer' | 'admin') => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchProfile: (userId: string) => Promise<UserProfile | null>;
 }

@@ -13,6 +13,11 @@ The application expects these client-safe values in `.env`:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_HCAPTCHA_SITE_KEY` (optional — enables customer login/signup/forgot-password CAPTCHA)
+
+Keep CAPTCHA secrets server-side only (never as `VITE_`):
+
+- `HCAPTCHA_SECRET_KEY` (or your provider’s secret) — verify tokens in a backend/edge function; do not ship to the browser.
 
 Provider credentials must never use a `VITE_` prefix. Keep them in Supabase Edge Function secrets:
 

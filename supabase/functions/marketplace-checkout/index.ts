@@ -365,6 +365,88 @@ serve(async (req) => {
       return json({ success: true, result: data });
     }
 
+    // Buyer tracking read path — verifies order ownership, then returns that buyer's shipments.
+    if (action === 'list_order_shipments') {
+      const orderId = toStringValue(body.orderId) || toStringValue(body.order_id);
+      if (!orderId) return json({ error: 'Order id is required.' }, 400);
+
+      const { data: order, error: orderError } = await admin
+        .from('orders')
+        .select('id, buyer_id')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (orderError) throw orderError;
+      if (!order || asRecord(order).buyer_id !== userId) {
+        return json({ error: 'Order not found.' }, 404);
+      }
+
+      const { data: shipmentRows, error: shipmentError } = await admin
+        .from('shipments')
+        .select(
+          'id, order_id, vendor_id, buyer_id, courier_id, carrier, tracking_number, status, origin, destination, estimated_delivery_date, dispatched_at, picked_up_at, delivered_at, created_at, updated_at',
+        )
+        .eq('order_id', orderId)
+        .eq('buyer_id', userId)
+        .order('created_at', { ascending: true });
+      if (shipmentError) throw shipmentError;
+
+      const shipments = (shipmentRows || []).map(asRecord);
+      const shipmentIds = shipments
+        .map((row) => toStringValue(row.id))
+        .filter((id): id is string => Boolean(id));
+
+      let events: Record<string, unknown>[] = [];
+      if (shipmentIds.length) {
+        const { data: eventRows, error: eventsError } = await admin
+          .from('shipment_events')
+          .select('id, shipment_id, status, location, description, actor_type, actor_id, event_time, created_at')
+          .in('shipment_id', shipmentIds)
+          .order('event_time', { ascending: true });
+        if (eventsError) throw eventsError;
+        events = (eventRows || []).map(asRecord);
+      }
+
+      return json({ success: true, shipments, events });
+    }
+
+    if (action === 'list_shipment_summaries') {
+      const orderIdsRaw = Array.isArray(body.orderIds)
+        ? body.orderIds
+        : Array.isArray(body.order_ids)
+          ? body.order_ids
+          : [];
+      const orderIds = orderIdsRaw
+        .map((value) => toStringValue(value))
+        .filter((id): id is string => Boolean(id));
+      if (!orderIds.length) {
+        return json({ success: true, shipments: [] });
+      }
+
+      const { data: ownedOrders, error: ownedError } = await admin
+        .from('orders')
+        .select('id')
+        .eq('buyer_id', userId)
+        .in('id', orderIds);
+      if (ownedError) throw ownedError;
+
+      const ownedIds = (ownedOrders || [])
+        .map((row) => toStringValue(asRecord(row).id))
+        .filter((id): id is string => Boolean(id));
+      if (!ownedIds.length) {
+        return json({ success: true, shipments: [] });
+      }
+
+      const { data: shipmentRows, error: shipmentError } = await admin
+        .from('shipments')
+        .select('order_id, status, created_at, buyer_id')
+        .eq('buyer_id', userId)
+        .in('order_id', ownedIds)
+        .order('created_at', { ascending: false });
+      if (shipmentError) throw shipmentError;
+
+      return json({ success: true, shipments: (shipmentRows || []).map(asRecord) });
+    }
+
     return json({ error: 'Unsupported action.' }, 400);
   } catch (error) {
     return json({ error: readError(error) }, 500);

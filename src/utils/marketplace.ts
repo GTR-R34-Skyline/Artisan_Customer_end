@@ -17,7 +17,7 @@ export const PRICE_RANGES = [
 
 export type PriceRangeId = (typeof PRICE_RANGES)[number]['id'];
 
-export const SEARCH_PLACEHOLDER = 'Search pottery, Kalamkari, brass lamps…';
+export const SEARCH_PLACEHOLDER = 'Search handcrafted products, artisans, or regions…';
 
 export const CRAFT_NOTES: Record<string, string> = {
   Handloom: 'Handloom textiles are woven on traditional looms, with pattern and texture decided by the weaver’s hand rather than a machine.',

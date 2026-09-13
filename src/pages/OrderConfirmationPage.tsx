@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
-import { Button, EmptyState, Eyebrow, LoadingState, StatusLabel } from '../components/DesignSystem';
+import { Button, EmptyState, Eyebrow, LoadingState } from '../components/DesignSystem';
 import { formatCurrency, getCheckoutSnapshot } from '../services/checkout.service';
-import { CheckoutSnapshot, orderStatusLabel, paymentStatusLabel } from '../types/checkout';
+import { CheckoutSnapshot, paymentStatusLabel } from '../types/checkout';
 
 const OrderConfirmationPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -60,10 +60,6 @@ const OrderConfirmationPage: React.FC = () => {
                 <dd className="mt-1 text-stone-950">{snapshot.order.id}</dd>
               </div>
               <div>
-                <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">Order status</dt>
-                <dd className="mt-1"><StatusLabel tone={paid ? 'success' : 'neutral'}>{orderStatusLabel(snapshot.order.status)}</StatusLabel></dd>
-              </div>
-              <div>
                 <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">Payment status</dt>
                 <dd className="mt-1">{paymentStatusLabel(snapshot.payment?.status)}</dd>
               </div>
@@ -113,6 +109,9 @@ const OrderConfirmationPage: React.FC = () => {
                 Return to payment
               </Button>
             )}
+            <Button variant="light" className="w-full" onClick={() => window.location.assign(`/orders/${snapshot.order.id}#tracking`)}>
+              Track order
+            </Button>
             <Button variant="light" className="w-full" onClick={() => window.location.assign('/orders')}>
               View all orders
             </Button>

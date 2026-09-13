@@ -229,6 +229,51 @@ export const listBuyerOrders = async (): Promise<BuyerOrderHistoryEntry[]> => {
   return listBuyerOrdersFromTables();
 };
 
+/** Single buyer order by id — RLS-scoped; returns null when not owned / missing. */
+export const getBuyerOrder = async (orderId: string): Promise<BuyerOrderHistoryEntry | null> => {
+  const trimmed = orderId.trim();
+  if (!trimmed) return null;
+
+  try {
+    const snapshot = await getCheckoutSnapshot(trimmed);
+    if (snapshot.order.id) return snapshot;
+  } catch {
+    // Fall through to direct table read.
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('id, status, total_amount, shipping_address, stock_deducted, created_at')
+    .eq('id', trimmed)
+    .maybeSingle();
+
+  if (orderError) throw orderError;
+  if (!order) return null;
+
+  const [{ data: items, error: itemsError }, { data: payments, error: paymentsError }] = await Promise.all([
+    supabase.from('order_items').select('id, order_id, product_id, vendor_id, quantity, unit_price, subtotal').eq('order_id', trimmed),
+    supabase.from('payments').select('id, order_id, status, amount, transaction_id, upi_app, payment_method').eq('order_id', trimmed),
+  ]);
+
+  if (itemsError) throw itemsError;
+  if (paymentsError) throw paymentsError;
+
+  const itemRows = (items || []).map(asRecord);
+  const productIds = Array.from(new Set(itemRows.map((row) => toStringValue(row.product_id)).filter((id): id is string => Boolean(id))));
+  let products: Record<string, unknown>[] = [];
+  if (productIds.length) {
+    const { data: productRows, error: productsError } = await supabase
+      .from('products')
+      .select('id, title, title_en, original_image_url, studio_image_url, enhanced_image_url')
+      .in('id', productIds);
+    if (productsError) throw productsError;
+    products = (productRows || []).map(asRecord);
+  }
+
+  const [entry] = assembleHistory([asRecord(order)], itemRows, (payments || []).map(asRecord), products);
+  return entry || null;
+};
+
 export const formatOrderDate = (value: string | null): string => {
   if (!value) return 'Date unavailable';
   const date = new Date(value);
