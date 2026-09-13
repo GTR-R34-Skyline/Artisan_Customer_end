@@ -58,6 +58,13 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
+    // Prevent a stuck horizontal scroll offset on mobile PWA (overflow from rails/chips).
+    window.scrollTo({ left: 0, top: window.scrollY });
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
     getMarketplaceListings()
       .then((listings) => setShopCategories(shopCategoriesFromListings(listings)))
       .catch(() => setShopCategories([]));
@@ -109,7 +116,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   );
 
   return (
-    <div className={`site-shell min-h-screen bg-ivory text-charcoal ${showTabbar ? 'has-tabbar md:pb-0' : ''} ${className}`}>
+    <div className={`site-shell min-h-screen w-full min-w-0 overflow-x-hidden bg-ivory text-charcoal ${showTabbar ? 'has-tabbar md:pb-0' : ''} ${className}`}>
       <a href="#main-content" className="skip-link">Skip to content</a>
       <header className="site-header">
         <div className="utility-strip" aria-hidden="true">

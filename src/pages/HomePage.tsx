@@ -30,9 +30,9 @@ const HomeSection: React.FC<{
   className?: string;
   flush?: boolean;
 }> = ({ id, title, subtitle, to, actionLabel = 'View All', children, className = '', flush = false }) => (
-  <section id={id} className={`home-section ${flush ? '' : 'mx-auto max-w-market px-4 lg:px-8'} ${className}`}>
-    <div className={`home-section-head ${flush ? 'mx-auto max-w-market px-4 lg:px-8' : ''}`}>
-      <div className="min-w-0">
+  <section id={id} className={`home-section w-full min-w-0 ${flush ? '' : 'mx-auto max-w-market px-4 lg:px-8'} ${className}`}>
+    <div className={`home-section-head min-w-0 ${flush ? 'mx-auto max-w-market px-4 lg:px-8' : ''}`}>
+      <div className="min-w-0 flex-1">
         <h2 className="font-display text-[1.35rem] tracking-[-0.03em] text-charcoal sm:text-[1.75rem]">{title}</h2>
         {subtitle && <p className="mt-1 text-sm text-stone-600">{subtitle}</p>}
       </div>
@@ -42,7 +42,7 @@ const HomeSection: React.FC<{
         </Link>
       )}
     </div>
-    <div className={flush ? 'mx-auto max-w-market px-4 lg:px-8' : ''}>{children}</div>
+    <div className={`min-w-0 ${flush ? 'mx-auto max-w-market px-4 lg:px-8' : ''}`}>{children}</div>
   </section>
 );
 
@@ -77,7 +77,7 @@ const HomePage: React.FC = () => {
   const crafts = useMemo(() => craftTiles(listings), [listings]);
 
   return (
-    <div className="home-page flex flex-col gap-0">
+    <div className="home-page flex w-full min-w-0 flex-col gap-0 overflow-x-hidden">
       {heroSlides.length > 0 ? (
         <HeroCarousel slides={heroSlides} />
       ) : loading ? (
@@ -235,9 +235,9 @@ const HomePage: React.FC = () => {
           to="/marketplace"
           className="py-7 md:py-10"
         >
-          <div className="product-rail mt-5 md:hidden">
+          <div className="product-rail mt-5 min-w-0 md:hidden">
             {trending.map((listing) => (
-              <div key={listing.id} className="product-rail-item">
+              <div key={listing.id} className="product-rail-item min-w-0">
                 <ProductCard listing={listing} compact />
               </div>
             ))}

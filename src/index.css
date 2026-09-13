@@ -30,6 +30,9 @@
   }
 
   html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
     background: #f3eacc;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
@@ -37,9 +40,20 @@
   }
 
   body {
-    min-width: 320px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     margin: 0;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
     background: #f3eacc;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
   }
 
   button,
@@ -94,6 +108,10 @@
 .site-shell {
   position: relative;
   isolation: isolate;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .skip-link {
@@ -114,6 +132,8 @@
   position: sticky;
   z-index: 30;
   top: 0;
+  width: 100%;
+  max-width: 100%;
   padding-top: env(safe-area-inset-top);
   background: #123c35;
   border-bottom: 1px solid rgba(176, 138, 69, 0.35);
@@ -1202,11 +1222,24 @@ div.market-search {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-page,
+.home-section,
+.page-transition {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .hero-campaign {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .hero-campaign-wash {
@@ -1397,7 +1430,11 @@ div.market-search {
 .product-rail {
   display: flex;
   gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   padding-bottom: 0.25rem;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;

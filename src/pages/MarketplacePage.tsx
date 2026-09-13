@@ -124,7 +124,7 @@ const MarketplacePage: React.FC = () => {
   };
 
   return (
-    <div className="marketplace-page mx-auto max-w-market px-4 pb-8 pt-5 md:pb-20 md:pt-8 lg:px-8 lg:pt-10">
+    <div className="marketplace-page mx-auto w-full min-w-0 max-w-market overflow-x-hidden px-4 pb-8 pt-5 md:pb-20 md:pt-8 lg:px-8 lg:pt-10">
       <header className="max-w-2xl space-y-2 md:space-y-3">
         <Eyebrow>Shop</Eyebrow>
         <h1 className="font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl">
@@ -136,7 +136,7 @@ const MarketplacePage: React.FC = () => {
       </header>
 
       {values.region && regionCrafts.length > 0 && (
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1 hide-scrollbar md:flex-wrap md:overflow-visible">
+        <div className="mt-4 flex min-w-0 gap-2 overflow-x-auto pb-1 hide-scrollbar md:flex-wrap md:overflow-visible">
           {regionCrafts.map((craft) => (
             <Link
               key={craft}

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'artisan-shell-v1';
+const CACHE_NAME = 'artisan-shell-v2';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE = [
   OFFLINE_URL,
