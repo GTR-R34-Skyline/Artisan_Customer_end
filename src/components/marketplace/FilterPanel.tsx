@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { groupedStates, PRICE_RANGES } from '../../utils/marketplace';
 import { shopCategoryLabel } from '../../utils/shopCategories';
@@ -162,10 +163,16 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
 
   useEffect(() => {
     if (!open) return;
-    setDraft(values);
+    setDraft({
+      category: values.category,
+      region: values.region,
+      craft: values.craft,
+      material: values.material,
+      price: values.price,
+    });
     setDraftSort(sort);
     setStateQuery('');
-  }, [open, sort, values]);
+  }, [open, sort, values.category, values.craft, values.material, values.price, values.region]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -193,9 +200,9 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div className="filter-sheet-root lg:hidden">
       <button type="button" className="filter-overlay" aria-label="Close filters" onClick={onClose} />
       <div role="dialog" aria-modal="true" aria-labelledby="mobile-filters-title" className="filter-sheet">
@@ -309,7 +316,12 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
         <div className="filter-sheet-actions">
           <button
             type="button"
-            onClick={() => { setDraft(emptyFilters); setDraftSort('featured'); }}
+            onClick={() => {
+              setDraft(emptyFilters);
+              setDraftSort('featured');
+              onApply(emptyFilters, 'featured');
+              onClose();
+            }}
             className="button-light min-h-12 flex-1 rounded-md px-4 text-sm font-semibold"
           >
             Clear all
@@ -323,6 +335,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

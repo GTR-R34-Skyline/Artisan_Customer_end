@@ -690,18 +690,20 @@ div.market-search {
 .filter-sheet-root {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 80;
 }
 
 .filter-overlay {
   position: absolute;
   inset: 0;
+  z-index: 0;
   border: 0;
   background: rgba(43, 39, 35, 0.38);
 }
 
 .filter-sheet {
   position: absolute;
+  z-index: 1;
   right: 0;
   bottom: 0;
   left: 0;
@@ -712,6 +714,7 @@ div.market-search {
   background: #faf7f1;
   box-shadow: 0 -12px 32px rgba(43, 39, 35, 0.12);
   padding-bottom: env(safe-area-inset-bottom);
+  pointer-events: auto;
 }
 
 .skeleton-block,
