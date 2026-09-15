@@ -173,10 +173,18 @@ export const artisanTeasers = (listings: MarketplaceListing[], count = 6) => {
   return uniqueArtisans(listings)
     .slice(0, count * 2)
     .map((listing) => {
-      const image = pickDistinctImage(
-        listings.filter((item) => item.artisan?.id === listing.artisan?.id),
-        used,
-      );
+      // Prefer the artisan's profile image when available; fall back to a product image.
+      const artisanImage = listing.artisan?.profile_image_url || null;
+      let image: string | null = null;
+      if (artisanImage) {
+        if (!used.has(artisanImage)) used.add(artisanImage);
+        image = artisanImage;
+      } else {
+        image = pickDistinctImage(
+          listings.filter((item) => item.artisan?.id === listing.artisan?.id),
+          used,
+        );
+      }
       return { listing, image };
     })
     .filter((item) => item.listing.artisan?.id)

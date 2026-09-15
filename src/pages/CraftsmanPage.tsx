@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { EmptyState, Eyebrow, ImageFrame, LoadingState, Reveal, StatusLabel } from '../components/DesignSystem';
 import { ProductCard } from '../components/ProductCard';
 import { getCraftsmanProfile } from '../services/marketplace.service';
-import { CraftsmanProfile, getProductImage, getProductStory, MarketplaceListing } from '../types/marketplace';
+import { CraftsmanProfile, getProductStory, MarketplaceListing } from '../types/marketplace';
 import { getLanguageConfig } from '../utils/languages';
 
 const CraftsmanPage: React.FC = () => {
@@ -44,7 +44,6 @@ const CraftsmanPage: React.FC = () => {
     return <div className="mx-auto max-w-market px-4 py-16 lg:px-8"><EmptyState title="Artisan not found." description={error || 'This profile may no longer be available.'} /></div>;
   }
 
-  const heroProduct = craftsman.products[0];
   const descriptionProduct = craftsman.products.find((product) => getProductStory(product));
   const story = descriptionProduct ? getProductStory(descriptionProduct) : null;
   const specialization = craftsman.craft_type || specializations.join(' · ');
@@ -59,8 +58,8 @@ const CraftsmanPage: React.FC = () => {
       <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
         <Reveal>
           <ImageFrame
-            src={heroProduct ? getProductImage(heroProduct) : null}
-            alt={craftsman.full_name || 'Artisan’s work'}
+            src={craftsman.profile_image_url}
+            alt={craftsman.full_name || 'Artisan'}
             label={craftsman.full_name || 'Independent artisan'}
             className="aspect-[4/5] lg:aspect-[4/5]"
           />
