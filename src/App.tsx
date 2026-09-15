@@ -8,7 +8,7 @@ import { useAuth } from './auth/useAuthHook';
 import { RoleRoute } from './auth/RoleRoute';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
-
+import ArtisansPage from './pages/ArtisansPage';
 const HomePage = lazy(() => import('./pages/HomePage'));
 const MarketplacePage = lazy(() => import('./pages/MarketplacePage'));
 const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
@@ -50,6 +50,7 @@ const AppContent: React.FC = () => {
           <Route path="/marketplace/:productId" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/artisans" element={<ArtisansPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/checkout/payment/:orderId" element={<MockUpiPaymentPage />} />
           <Route path="/checkout/confirmation/:orderId" element={<OrderConfirmationPage />} />

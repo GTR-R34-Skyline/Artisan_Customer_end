@@ -257,6 +257,7 @@ const HomePage: React.FC = () => {
           id="makers"
           title="Meet Our Artisans"
           subtitle="Photographs of the work — and the makers behind it."
+          to="/artisans"
           className="bg-cream py-7 md:py-10"
           flush
         >
