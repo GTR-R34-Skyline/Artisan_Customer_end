@@ -1,8 +1,7 @@
-import React, { useCallback, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button, Eyebrow, Field } from './DesignSystem';
-import { CaptchaWidget, isCaptchaConfigured } from './CaptchaWidget';
 import { useAuth } from '../auth/useAuthHook';
 
 type LoginLocationState = { from?: { pathname?: string } } | null;
@@ -20,20 +19,8 @@ const Login: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [mode, setMode] = useState<AuthMode>('login');
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const redirectPath = (location.state as LoginLocationState)?.from?.pathname || '/';
-  const captchaRequired = isCaptchaConfigured();
-
-  const onCaptcha = useCallback((token: string | null) => {
-    setCaptchaToken(token);
-  }, []);
-
-  const ensureCaptcha = () => {
-    if (captchaRequired && !captchaToken) {
-      throw new Error('Please complete the CAPTCHA verification.');
-    }
-  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -43,14 +30,11 @@ const Login: React.FC = () => {
 
     try {
       if (mode === 'forgot') {
-        ensureCaptcha();
         await requestPasswordReset(email.trim());
         setSuccess('If an account exists for that email, a reset link has been sent. Check your inbox.');
         setMode('login');
         return;
       }
-
-      ensureCaptcha();
 
       if (mode === 'register') {
         if (!fullName.trim()) throw new Error('Please enter your name.');
@@ -120,8 +104,6 @@ const Login: React.FC = () => {
                 <Field label="Confirm password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm your password" type="password" autoComplete="new-password" required />
               )}
 
-              <CaptchaWidget onVerify={onCaptcha} />
-
               <Button type="submit" disabled={loading} className="w-full justify-between">
                 {loading
                   ? 'Please wait'
@@ -160,9 +142,6 @@ const Login: React.FC = () => {
                   Back to sign in
                 </button>
               )}
-              <Link to="/join" className="text-stone-500 hover:text-royal">
-                Are you an artisan? Join ARTISAN →
-              </Link>
             </div>
           </>
         )}
