@@ -37,6 +37,7 @@ export interface MarketplaceProfile {
   profile_image_url: string | null;
   location_state: string | null;
   preferred_language: string | null;
+  artisan_story?: string | null;
   craft_type?: string | null;
   gi_certified?: boolean | null;
   verification_status?: string | null;

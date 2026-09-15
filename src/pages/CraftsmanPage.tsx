@@ -44,8 +44,7 @@ const CraftsmanPage: React.FC = () => {
     return <div className="mx-auto max-w-market px-4 py-16 lg:px-8"><EmptyState title="Artisan not found." description={error || 'This profile may no longer be available.'} /></div>;
   }
 
-  const descriptionProduct = craftsman.products.find((product) => getProductStory(product));
-  const story = descriptionProduct ? getProductStory(descriptionProduct) : null;
+  const story = craftsman.artisan_story || null;
   const specialization = craftsman.craft_type || specializations.join(' · ');
   const storyPreview = story && story.length > 240 && !storyOpen ? `${story.slice(0, 240).trim()}…` : story;
 
