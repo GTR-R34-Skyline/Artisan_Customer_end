@@ -18,8 +18,7 @@ const NAV_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'Shop', to: '/marketplace' },
   { label: 'New Arrivals', to: '/marketplace?sort=newest' },
-  { label: 'Artisans', to: '/#makers' },
-  { label: 'Regions', to: '/#regions' },
+  { label: 'Artisans', to: '/artisans' }
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
