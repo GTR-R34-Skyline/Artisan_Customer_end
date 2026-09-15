@@ -266,11 +266,13 @@ const HomePage: React.FC = () => {
               const artisan = listing.artisan!;
               const name = artisan.full_name || 'Independent artisan';
               const craft = artisan.craft_type || listing.category;
+              const isArtisanImage = Boolean(artisan.profile_image_url && image === artisan.profile_image_url);
+              const imgAlt = isArtisanImage ? `Portrait of ${name}` : `Work by ${name}`;
               return (
                 <Link key={artisan.id} to={`/craftsman/${artisan.id}`} className="artisan-photo-card">
                   <div className="aspect-[4/5] overflow-hidden bg-sand">
                     {image ? (
-                      <img src={image} alt={`Work by ${name}`} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                      <img src={image} alt={imgAlt} className="h-full w-full object-cover" loading="lazy" decoding="async" />
                     ) : null}
                   </div>
                   <div className="p-3">

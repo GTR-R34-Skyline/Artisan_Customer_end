@@ -25,6 +25,7 @@ const PRODUCT_SELECT = `
   artisan:profiles (
     id,
     full_name,
+    profile_image_url,
     location_state,
     preferred_language
   )
@@ -105,7 +106,7 @@ export const getCraftsmanProfile = async (craftsmanId: string): Promise<Craftsma
   const [{ data: profile, error: profileError }, { data: vendor, error: vendorError }, { data: products, error: productsError }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, location_state, preferred_language')
+      .select('id, full_name, profile_image_url, location_state, preferred_language')
       .eq('id', craftsmanId)
       .maybeSingle(),
     supabase

@@ -34,6 +34,7 @@ export interface MarketplaceProduct {
 export interface MarketplaceProfile {
   id: string;
   full_name: string | null;
+  profile_image_url: string | null;
   location_state: string | null;
   preferred_language: string | null;
   craft_type?: string | null;
