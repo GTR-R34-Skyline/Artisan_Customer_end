@@ -424,6 +424,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/marketplace-checkout/index.ts"
 
+[functions.razorpay-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/razorpay-webhook/index.ts"
+
 [functions.profile-conversation]
 enabled = true
 verify_jwt = false

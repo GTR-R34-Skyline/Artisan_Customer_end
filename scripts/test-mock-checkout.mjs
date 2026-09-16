@@ -1,6 +1,8 @@
 /**
- * Integration checks for the mock UPI checkout flow.
+ * Integration checks for Razorpay checkout scaffolding.
  * Requires VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
+ * Optional: RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET configured on Edge Functions
+ * for create_razorpay_order coverage.
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -63,7 +65,7 @@ async function main() {
   const product = await findPurchasableProduct(buyer);
   const initialStock = product.stock_count ?? product.quantity ?? 0;
   const unitPrice = product.final_price ?? product.suggested_price;
-  const idempotencyKey = `test-${Date.now()}`;
+  const idempotencyKey = `test-rzp-${Date.now()}`;
 
   const created = await invokeCheckout(buyer, {
     action: 'create_order',
@@ -75,6 +77,11 @@ async function main() {
   const orderId = created.order.id;
   const paymentId = created.payment.id;
   record('create order + pending payment', Boolean(orderId && paymentId), `${orderId} / ${paymentId}`);
+  record(
+    'payment method is upi pending (Razorpay is gateway, not method)',
+    created.payment.payment_method === 'upi' && created.payment.status === 'pending',
+    `${created.payment.payment_method}/${created.payment.status}`,
+  );
 
   const duplicate = await invokeCheckout(buyer, {
     action: 'create_order',
@@ -84,100 +91,58 @@ async function main() {
   });
   record('idempotent order creation', duplicate.idempotent === true && duplicate.order.id === orderId, duplicate.order.id);
 
-  const failedPayment = await invokeCheckout(buyer, {
-    action: 'process_payment',
-    orderId,
-    mockOutcome: 'failed',
-    upiApp: 'Google Pay',
-    transactionId: created.payment.transaction_id,
-  });
-  record('failed payment marks payment failed', failedPayment.result.payment_status === 'failed', failedPayment.result.payment_status);
-
-  const { data: afterFailProduct } = await buyer.from('products').select('stock_count, quantity').eq('id', product.id).single();
-  record('failed payment does not reduce stock', (afterFailProduct?.stock_count ?? afterFailProduct?.quantity) === initialStock, `stock ${afterFailProduct?.stock_count ?? afterFailProduct?.quantity}`);
-
-  await invokeCheckout(buyer, { action: 'retry_payment', orderId });
-  const pending = await invokeCheckout(buyer, {
-    action: 'process_payment',
-    orderId,
-    mockOutcome: 'pending',
-    upiApp: 'PhonePe',
-    transactionId: created.payment.transaction_id,
-  });
-  record('pending payment stays pending', pending.result.payment_status === 'pending', pending.result.payment_status);
-
-  const { data: pendingOrder } = await buyer.from('orders').select('status').eq('id', orderId).single();
-  record('pending payment does not deliver order', pendingOrder?.status === 'processing', pendingOrder?.status || 'unknown');
-
-  await invokeCheckout(buyer, { action: 'retry_payment', orderId });
-  const success = await invokeCheckout(buyer, {
+  const mockBlocked = await invokeCheckout(buyer, {
     action: 'process_payment',
     orderId,
     mockOutcome: 'success',
-    upiApp: 'Paytm',
-    transactionId: created.payment.transaction_id,
-  });
-  record('successful payment completes order', success.result.payment_status === 'success' && success.result.order_status === 'delivered', `${success.result.payment_status}/${success.result.order_status}`);
-
-  const duplicateSuccess = await invokeCheckout(buyer, {
-    action: 'process_payment',
-    orderId,
-    mockOutcome: 'success',
-    upiApp: 'Paytm',
-    transactionId: created.payment.transaction_id,
-  });
-  record('duplicate success is idempotent', duplicateSuccess.result.idempotent === true, String(duplicateSuccess.result.idempotent));
-
-  const { data: afterSuccessProduct } = await buyer.from('products').select('stock_count, quantity').eq('id', product.id).single();
-  record('successful payment reduces stock once', (afterSuccessProduct?.stock_count ?? afterSuccessProduct?.quantity) === initialStock - 1, `stock ${afterSuccessProduct?.stock_count ?? afterSuccessProduct?.quantity}`);
-
-  const { data: paymentRow } = await buyer.from('payments').select('amount, transaction_id, payment_method, upi_app, status').eq('order_id', orderId).single();
+  }).catch((error) => ({ error: error.message }));
   record(
-    'payment row populated correctly',
-    paymentRow?.status === 'success' && Number(paymentRow.amount) === Number(unitPrice) && String(paymentRow.transaction_id || '').startsWith('MOCK-UPI-'),
-    `${paymentRow?.status} ${paymentRow?.amount}`,
+    'mock process_payment is disabled',
+    Boolean(mockBlocked.error),
+    mockBlocked.error || 'unexpectedly succeeded',
   );
 
-  const { data: orderItems } = await buyer.from('order_items').select('product_id, quantity, unit_price, subtotal').eq('order_id', orderId);
-  record('order items created', (orderItems || []).length === 1 && orderItems[0].product_id === product.id, `${orderItems?.length || 0} item(s)`);
-
-  const buyerId = (await buyer.auth.getUser()).data.user?.id;
-  const { data: eligibilityOrders } = await buyer
-    .from('orders')
-    .select('id, status, order_items!inner(product_id)')
-    .eq('buyer_id', buyerId)
-    .eq('order_items.product_id', product.id);
-  const eligible = (eligibilityOrders || []).some((row) => ['delivered', 'completed', 'complete', 'fulfilled'].includes(String(row.status || '').toLowerCase()));
-  record('successful purchase makes buyer review-eligible', eligible, `${eligibilityOrders?.length || 0} matching order(s)`);
-
-  const failedBuyer = await signIn('yash.malhotra@demo.artisan.market');
-  const failedAttempt = await invokeCheckout(failedBuyer, {
-    action: 'create_order',
-    items: [{ productId: product.id, quantity: 1 }],
-    shippingAddress: 'Yash Malhotra, Demo Lane, Haryana',
-    idempotencyKey: `fail-test-${Date.now()}`,
-  }).catch((error) => ({ error: error.message }));
-  if (failedAttempt.error) {
-    record('out-of-stock or validation prevents impossible purchase', true, failedAttempt.error);
-  } else {
-    const failOrderId = failedAttempt.order.id;
-    await invokeCheckout(failedBuyer, {
-      action: 'process_payment',
-      orderId: failOrderId,
-      mockOutcome: 'failed',
-      upiApp: 'Google Pay',
-      transactionId: failedAttempt.payment.transaction_id,
+  try {
+    const session = await invokeCheckout(buyer, {
+      action: 'create_razorpay_order',
+      orderId,
     });
-    const { data: failEligibility } = await failedBuyer
-      .from('orders')
-      .select('status')
-      .eq('id', failOrderId)
-      .single();
-    record('failed purchase is not delivered', failEligibility?.status !== 'delivered', failEligibility?.status || 'unknown');
+    record(
+      'create_razorpay_order returns session',
+      Boolean(session.keyId && session.razorpayOrderId && session.amountPaise > 0),
+      `${session.razorpayOrderId} / ${session.amountPaise} paise`,
+    );
+    record(
+      'razorpay amount matches order total in paise',
+      Number(session.amountPaise) === Math.round(Number(unitPrice) * 100),
+      `${session.amountPaise} vs ${Math.round(Number(unitPrice) * 100)}`,
+    );
+
+    const again = await invokeCheckout(buyer, {
+      action: 'create_razorpay_order',
+      orderId,
+    });
+    record(
+      'create_razorpay_order reuses existing Razorpay order',
+      again.razorpayOrderId === session.razorpayOrderId,
+      again.razorpayOrderId,
+    );
+  } catch (error) {
+    record(
+      'create_razorpay_order available when secrets configured',
+      false,
+      error instanceof Error ? error.message : String(error),
+    );
   }
 
+  const { data: afterCreateProduct } = await buyer.from('products').select('stock_count, quantity').eq('id', product.id).single();
+  record(
+    'creating razorpay session does not reduce stock',
+    (afterCreateProduct?.stock_count ?? afterCreateProduct?.quantity) === initialStock,
+    `stock ${afterCreateProduct?.stock_count ?? afterCreateProduct?.quantity}`,
+  );
+
   await buyer.auth.signOut();
-  await failedBuyer.auth.signOut();
 
   const failed = results.filter((result) => !result.pass);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

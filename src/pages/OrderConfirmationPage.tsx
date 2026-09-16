@@ -44,7 +44,7 @@ const OrderConfirmationPage: React.FC = () => {
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-600">
             {paid
-              ? 'Your mock UPI payment succeeded. You can review this order anytime from your past orders.'
+              ? 'Your Razorpay payment succeeded. You can review this order anytime from your past orders.'
               : 'Payment has not completed yet. Return to the payment screen to finish checkout.'}
           </p>
         </div>

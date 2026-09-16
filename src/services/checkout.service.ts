@@ -6,8 +6,6 @@ import {
   CheckoutOrderItem,
   CheckoutPayment,
   CheckoutSnapshot,
-  MockPaymentOutcome,
-  MockUpiApp,
 } from '../types/checkout';
 import { CartItem } from '../types/checkout';
 
@@ -304,31 +302,85 @@ export const getCheckoutSnapshot = async (orderId: string): Promise<CheckoutSnap
   };
 };
 
-export const processMockPayment = async (input: {
+export interface RazorpayCheckoutSession {
+  keyId: string;
+  razorpayOrderId: string;
+  amountPaise: number;
+  currency: string;
   orderId: string;
-  mockOutcome: MockPaymentOutcome;
-  upiApp: MockUpiApp;
-  upiId?: string;
-  transactionId?: string | null;
+  amountInr: number;
+  prefill: {
+    name: string | null;
+    email: string | null;
+    contact: string | null;
+  };
+}
+
+export const createRazorpayCheckoutSession = async (orderId: string): Promise<RazorpayCheckoutSession> => {
+  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
+    body: { action: 'create_razorpay_order', orderId },
+  });
+
+  if (error) throw new Error(await readFunctionError(error));
+  const payload = asRecord(data);
+  if (!payload.success) throw new Error(toStringValue(payload.error) || 'Payment could not be prepared.');
+
+  const prefill = asRecord(payload.prefill);
+  const keyId = toStringValue(payload.keyId) || toStringValue(payload.key_id);
+  const razorpayOrderId = toStringValue(payload.razorpayOrderId) || toStringValue(payload.razorpay_order_id);
+  if (!keyId || !razorpayOrderId) {
+    throw new Error('Razorpay checkout session is incomplete.');
+  }
+
+  return {
+    keyId,
+    razorpayOrderId,
+    amountPaise: Math.round(toNumber(payload.amountPaise || payload.amount_paise)),
+    currency: toStringValue(payload.currency) || 'INR',
+    orderId: toStringValue(payload.orderId) || orderId,
+    amountInr: toNumber(payload.amountInr || payload.amount_inr),
+    prefill: {
+      name: toStringValue(prefill.name),
+      email: toStringValue(prefill.email),
+      contact: toStringValue(prefill.contact),
+    },
+  };
+};
+
+export const verifyRazorpayPayment = async (input: {
+  orderId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
 }): Promise<Record<string, unknown>> => {
   const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
     body: {
-      action: 'process_payment',
+      action: 'verify_razorpay_payment',
       orderId: input.orderId,
-      mockOutcome: input.mockOutcome,
-      upiApp: input.upiApp,
-      upiId: input.upiId,
-      transactionId: input.transactionId,
+      razorpayOrderId: input.razorpayOrderId,
+      razorpayPaymentId: input.razorpayPaymentId,
+      razorpaySignature: input.razorpaySignature,
     },
   });
 
   if (error) throw new Error(await readFunctionError(error));
   const payload = asRecord(data);
-  if (!payload.success) throw new Error(toStringValue(payload.error) || 'Payment could not be processed.');
+  if (!payload.success) throw new Error(toStringValue(payload.error) || 'Payment could not be verified.');
   return asRecord(payload.result);
 };
 
-export const retryMockPayment = async (orderId: string): Promise<Record<string, unknown>> => {
+export const markRazorpayPaymentFailed = async (orderId: string): Promise<Record<string, unknown>> => {
+  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
+    body: { action: 'mark_razorpay_failed', orderId },
+  });
+
+  if (error) throw new Error(await readFunctionError(error));
+  const payload = asRecord(data);
+  if (!payload.success) throw new Error(toStringValue(payload.error) || 'Payment status could not be updated.');
+  return asRecord(payload.result);
+};
+
+export const retryCheckoutPayment = async (orderId: string): Promise<Record<string, unknown>> => {
   const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
     body: { action: 'retry_payment', orderId },
   });
@@ -337,14 +389,6 @@ export const retryMockPayment = async (orderId: string): Promise<Record<string, 
   const payload = asRecord(data);
   if (!payload.success) throw new Error(toStringValue(payload.error) || 'Payment could not be retried.');
   return asRecord(payload.result);
-};
-
-export const resolveMockOutcomeFromUpiId = (upiId: string): MockPaymentOutcome | null => {
-  const normalized = upiId.trim().toLowerCase();
-  if (normalized.endsWith('@success') || normalized === 'success@mockupi') return 'success';
-  if (normalized.endsWith('@fail') || normalized.endsWith('@failed') || normalized === 'fail@mockupi') return 'failed';
-  if (normalized.endsWith('@pending') || normalized === 'pending@mockupi') return 'pending';
-  return null;
 };
 
 export const formatCurrency = (amount: number): string => `₹${amount.toLocaleString('en-IN')}`;

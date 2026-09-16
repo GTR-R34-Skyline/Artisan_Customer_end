@@ -69,7 +69,7 @@ const CheckoutPage: React.FC = () => {
       <Eyebrow>Checkout</Eyebrow>
       <h1 className="mt-2 font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl md:mt-3">Delivery details</h1>
       <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
-        Signed in as {profile?.full_name || user.email}. After confirming, you will complete a simulated UPI payment.
+        Signed in as {profile?.full_name || user.email}. After confirming, you will complete a secure Razorpay payment.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 grid gap-6 lg:mt-10 lg:grid-cols-[1fr_0.42fr] lg:gap-8">
@@ -105,7 +105,7 @@ const CheckoutPage: React.FC = () => {
           </div>
           <div className="mt-8">
             <Button type="submit" disabled={submitting} className="w-full">
-              {submitting ? 'Creating order' : 'Continue to mock UPI'}
+              {submitting ? 'Creating order' : 'Continue to payment'}
             </Button>
           </div>
         </aside>

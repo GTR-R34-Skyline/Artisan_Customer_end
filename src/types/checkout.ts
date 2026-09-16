@@ -37,9 +37,6 @@ export interface CheckoutPayment {
   paymentMethod: string | null;
 }
 
-export type MockUpiApp = 'Google Pay' | 'PhonePe' | 'Paytm' | 'UPI ID' | 'QR';
-export type MockPaymentOutcome = 'success' | 'failed' | 'pending';
-
 export interface CheckoutSnapshot {
   order: CheckoutOrder;
   items: CheckoutOrderItem[];
@@ -47,8 +44,6 @@ export interface CheckoutSnapshot {
 }
 
 export type BuyerOrderHistoryEntry = CheckoutSnapshot;
-
-export const MOCK_UPI_APPS: MockUpiApp[] = ['Google Pay', 'PhonePe', 'Paytm', 'UPI ID', 'QR'];
 
 export const CHECKOUT_SESSION_KEY = 'artisan.checkout.idempotency';
 

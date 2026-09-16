@@ -30,7 +30,7 @@ const CartPage: React.FC = () => {
       <Eyebrow>Your cart</Eyebrow>
       <h1 className="mt-2 font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl md:mt-3">Your cart</h1>
       <p className="mt-2 hidden max-w-xl text-sm leading-7 text-stone-600 md:mt-3 md:block">
-        Review your selection before checkout and mock UPI payment.
+        Review your selection before checkout and secure payment.
       </p>
 
       <div className="mt-6 grid gap-6 lg:mt-10 lg:grid-cols-[1fr_0.42fr] lg:gap-8">
@@ -83,7 +83,7 @@ const CartPage: React.FC = () => {
         <aside className="cart-summary panel h-fit p-5 md:p-6">
           <Eyebrow>Summary</Eyebrow>
           <p className="mt-4 font-display text-3xl text-charcoal md:mt-5 md:text-4xl">{formatCurrency(subtotal)}</p>
-          <p className="mt-2 text-sm text-stone-500">Mock UPI payment at checkout. No real money is charged.</p>
+          <p className="mt-2 text-sm text-stone-500">Secure Razorpay payment at checkout.</p>
           <div className="mt-6 hidden space-y-3 md:mt-8 md:block">
             <Button className="w-full" onClick={() => navigate('/checkout')}>Proceed to checkout</Button>
             <Button variant="light" className="w-full" onClick={() => navigate('/marketplace')}>Continue browsing</Button>
