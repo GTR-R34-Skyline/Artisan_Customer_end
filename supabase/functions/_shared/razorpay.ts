@@ -103,20 +103,37 @@ export const createRazorpayOrder = async (input: {
   notes?: Record<string, string>;
 }): Promise<RazorpayOrder> => {
   const { keyId, keySecret } = getRazorpayCredentials();
-  const response = await fetch(`${RAZORPAY_API}/orders`, {
-    method: 'POST',
-    headers: {
-      Authorization: basicAuthHeader(keyId, keySecret),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      amount: input.amountPaise,
-      currency: 'INR',
-      receipt: input.receipt.slice(0, 40),
-      notes: input.notes || {},
-      payment_capture: 1,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  let response: Response;
+  try {
+    response = await fetch(`${RAZORPAY_API}/orders`, {
+      method: 'POST',
+      headers: {
+        Authorization: basicAuthHeader(keyId, keySecret),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: input.amountPaise,
+        currency: 'INR',
+        receipt: input.receipt.slice(0, 40),
+        notes: input.notes || {},
+        payment_capture: 1,
+      }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    const aborted = error instanceof Error && error.name === 'AbortError';
+    throw new Error(
+      aborted
+        ? 'Razorpay order creation timed out. Please retry.'
+        : error instanceof Error
+          ? error.message
+          : 'Razorpay order could not be created.',
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

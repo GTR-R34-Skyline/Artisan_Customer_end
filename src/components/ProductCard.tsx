@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { getProductImage, getProductPrice, getProductTitle, MarketplaceListing } from '../types/marketplace';
@@ -13,7 +13,34 @@ interface ProductCardProps {
   priority?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ listing, priority = false }) => {
+const ProductRating: React.FC<{ rating: number; reviewCount?: number | null }> = ({ rating, reviewCount }) => {
+  const clamped = Math.max(0, Math.min(5, rating));
+  return (
+    <div className="product-card-rating mt-1.5 flex min-w-0 items-center gap-1" aria-label={`Rated ${clamped.toFixed(1)} out of 5`}>
+      <div className="flex items-center gap-0.5" aria-hidden>
+        {[1, 2, 3, 4, 5].map((star) => {
+          const fill = Math.max(0, Math.min(1, clamped - (star - 1)));
+          return (
+            <span key={star} className="relative inline-flex h-3 w-3 shrink-0">
+              <Star className="absolute inset-0 h-3 w-3 text-stone-300" strokeWidth={1.5} />
+              {fill > 0 && (
+                <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+                  <Star className="h-3 w-3 fill-mustard text-mustard" strokeWidth={1.5} />
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+      <span className="text-[11px] tabular-nums text-stone-600">{clamped.toFixed(1)}</span>
+      {typeof reviewCount === 'number' && reviewCount > 0 && (
+        <span className="truncate text-[11px] text-stone-400">({reviewCount})</span>
+      )}
+    </div>
+  );
+};
+
+export const ProductCard: React.FC<ProductCardProps> = ({ listing, compact = false, priority = false }) => {
   const navigate = useNavigate();
   const { addListing } = useCart();
   const { has, toggle } = useWishlist();
@@ -27,6 +54,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ listing, priority = fa
   const image = getProductImage(listing);
   const title = getProductTitle(listing);
   const shopLabel = shopCategoryLabel(listing.category);
+  const badge = listing.badge || null;
+  const rating = listing.rating ?? null;
+  const reviewCount = listing.reviewCount ?? null;
 
   useEffect(() => {
     if (!added) return undefined;
@@ -35,7 +65,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ listing, priority = fa
   }, [added]);
 
   return (
-    <article className="product-card group relative flex h-full min-w-0 flex-col">
+    <article className={`product-card group relative flex h-full min-w-0 flex-col ${compact ? 'is-compact' : ''}`}>
       <Link to={`/marketplace/${listing.id}`} className="relative block min-w-0 overflow-hidden bg-sand">
         <div className="aspect-[4/5]">
           {image ? (
@@ -54,6 +84,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ listing, priority = fa
             </div>
           )}
         </div>
+        {badge === 'bestseller' && !outOfStock && (
+          <span className="product-badge product-badge-bestseller" aria-hidden="true">Bestseller</span>
+        )}
+        {badge === 'trending' && !outOfStock && (
+          <span className="product-badge product-badge-trending" aria-hidden="true">Trending</span>
+        )}
         {outOfStock && (
           <span className="absolute left-2 top-2 rounded-sm bg-charcoal/85 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-cream">
             Out of stock
@@ -88,8 +124,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ listing, priority = fa
           </p>
         )}
         <p className="mt-0.5 line-clamp-1 text-[11px] text-stone-500">{shopLabel}</p>
+        {rating !== null && rating > 0 && (
+          <ProductRating rating={rating} reviewCount={reviewCount} />
+        )}
         <div className="mt-auto pt-2">
-          <p className="text-[1.05rem] font-bold tabular-nums text-charcoal">
+          <p className="product-price text-[1.05rem] font-bold tabular-nums text-charcoal">
             {price !== null ? formatINR(price) : 'On request'}
           </p>
           {canAdd ? (

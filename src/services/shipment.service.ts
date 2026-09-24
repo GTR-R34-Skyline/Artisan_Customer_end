@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { invokeMarketplaceCheckout } from '../lib/invokeMarketplaceCheckout';
 import { BuyerShipment, ShipmentEvent } from '../types/shipment';
 
 const asRecord = (value: unknown): Record<string, unknown> =>
@@ -124,12 +125,13 @@ const listShipmentsForOrderDirect = async (
  * Verifies orders.buyer_id === auth user, then returns that buyer's shipments for the order UUID.
  */
 const listShipmentsForOrderViaEdge = async (orderId: string): Promise<BuyerShipment[]> => {
-  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-    body: { action: 'list_order_shipments', orderId },
+  const { data, error } = await invokeMarketplaceCheckout({
+    action: 'list_order_shipments',
+    orderId,
   });
 
   if (error) {
-    throw new Error(error.message || 'Shipment tracking could not be loaded.');
+    throw new Error((error as Error).message || 'Shipment tracking could not be loaded.');
   }
 
   const payload = asRecord(data);
@@ -225,11 +227,12 @@ const listShipmentSummariesViaEdge = async (
   orderIds: string[],
 ): Promise<Map<string, { count: number; latestStatus: string | null }>> => {
   const result = new Map<string, { count: number; latestStatus: string | null }>();
-  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-    body: { action: 'list_shipment_summaries', orderIds },
+  const { data, error } = await invokeMarketplaceCheckout({
+    action: 'list_shipment_summaries',
+    orderIds,
   });
 
-  if (error) throw new Error(error.message || 'Shipment summaries could not be loaded.');
+  if (error) throw new Error((error as Error).message || 'Shipment summaries could not be loaded.');
 
   const payload = asRecord(data);
   if (!payload.success) {

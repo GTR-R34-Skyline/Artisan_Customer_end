@@ -1277,6 +1277,164 @@ div.market-search {
   background: rgba(15, 61, 53, 0.8);
 }
 
+/* Interactive India map — Shop by Region */
+.india-map-svg {
+  display: block;
+}
+
+.india-map-state {
+  fill: #ebe4d4;
+  stroke: #c4b8a4;
+  stroke-width: 0.9;
+  cursor: pointer;
+  transition: fill 180ms ease, stroke 180ms ease, filter 180ms ease;
+  outline: none;
+}
+
+.india-map-state.has-products {
+  fill: #e4dcc8;
+}
+
+.india-map-state.is-empty {
+  fill: #f1ebe0;
+  stroke: #d2c7b4;
+}
+
+.india-map-state:hover,
+.india-map-state:focus-visible,
+.india-map-state.is-active {
+  fill: #9a4a2c;
+  stroke: #7a3a22;
+  filter: drop-shadow(0 1px 0 rgba(43, 39, 35, 0.08));
+}
+
+.india-map-label {
+  fill: #5c534a;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  user-select: none;
+}
+
+.india-map-state.is-active ~ .india-map-label,
+.india-map-tooltip {
+  pointer-events: auto;
+}
+
+.india-map-tooltip {
+  position: absolute;
+  z-index: 5;
+  width: 10.5rem;
+  padding: 0.7rem 0.75rem 0.75rem;
+  border: 1px solid rgba(43, 39, 35, 0.1);
+  border-radius: 0.5rem;
+  background: #faf6ec;
+  box-shadow: 0 10px 28px rgba(43, 39, 35, 0.12);
+  transform: translate(-10%, -110%);
+}
+
+.region-hero {
+  min-height: 11rem;
+}
+
+@media (min-width: 768px) {
+  .region-hero { min-height: 13rem; }
+}
+
+.discover-grid {
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.section-carousel {
+  width: 100%;
+  max-width: 100%;
+}
+
+.section-carousel-viewport {
+  width: 100%;
+  max-width: 100%;
+  touch-action: pan-y;
+}
+
+.section-carousel-track {
+  min-width: 0;
+}
+
+.section-carousel-slide {
+  min-width: 0;
+}
+
+.section-carousel-btn {
+  display: inline-flex;
+  width: 2.35rem;
+  height: 2.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(43, 39, 35, 0.14);
+  background: #faf6ec;
+  color: #2b2723;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.section-carousel-btn:hover:not(:disabled) {
+  border-color: #123c35;
+  color: #123c35;
+  background: #fff;
+}
+
+.section-carousel-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.product-badge {
+  position: absolute;
+  left: 0.5rem;
+  top: 0.5rem;
+  z-index: 2;
+  max-width: calc(100% - 3rem);
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+.product-badge-bestseller {
+  background: #123c35;
+  color: #f3eacc;
+}
+
+.product-badge-trending {
+  background: #b85c38;
+  color: #faf6ec;
+}
+
+.product-card.is-compact .product-card-body {
+  padding: 0.55rem 0.55rem 0.65rem;
+}
+
+.product-card.is-compact h3 {
+  font-size: 0.84rem;
+}
+
+.product-card.is-compact .product-card-atc {
+  min-height: 2.1rem;
+  margin-top: 0.45rem;
+  font-size: 0.65rem;
+}
+
+.product-card.is-compact .product-price {
+  font-size: 0.95rem;
+}
+
 .discover-grid {
   display: grid;
   gap: 0.65rem;

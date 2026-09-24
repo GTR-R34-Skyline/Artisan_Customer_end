@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, SlidersHorizontal } from 'lucide-react';
 import { EmptyState, Eyebrow, ProductSkeleton, Reveal } from '../components/DesignSystem';
 import { ProductCard } from '../components/ProductCard';
 import { FilterPanel, FilterSheet, FilterValues, SortOption } from '../components/marketplace/FilterPanel';
+import { getRegionMeta } from '../data/indiaRegions';
 import { getMarketplaceListings } from '../services/marketplace.service';
 import { getProductPrice, MarketplaceListing } from '../types/marketplace';
 import { useRefreshOnReconnect } from '../hooks/useOnlineStatus';
@@ -123,17 +124,75 @@ const MarketplacePage: React.FC = () => {
     onClear: clearFilters,
   };
 
+  const regionMeta = values.region ? getRegionMeta(values.region) : null;
+  const regionImage = useMemo(() => {
+    if (!values.region) return null;
+    const match = listings.find(
+      (listing) =>
+        listing.artisan?.location_state === values.region &&
+        (listing.studio_image_url || listing.enhanced_image_url || listing.original_image_url),
+    );
+    return match?.studio_image_url || match?.enhanced_image_url || match?.original_image_url || null;
+  }, [listings, values.region]);
+
   return (
     <div className="marketplace-page mx-auto w-full min-w-0 max-w-market overflow-x-hidden px-4 pb-8 pt-5 md:pb-20 md:pt-8 lg:px-8 lg:pt-10">
-      <header className="max-w-2xl space-y-2 md:space-y-3">
-        <Eyebrow>Shop</Eyebrow>
-        <h1 className="font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl">
-          {values.region ? `Crafts from ${values.region}` : 'Discover handcrafted products from across India.'}
-        </h1>
-        <p className="hidden text-sm leading-7 text-stone-600 md:block">
-          Shop finished products by category, craft, region, and artisan. Material is available as a filter — not the main way to browse.
-        </p>
-      </header>
+      {regionMeta ? (
+        <>
+          <nav className="mb-4 text-sm text-stone-500" aria-label="Breadcrumb">
+            <Link to="/" className="hover:text-royal">Home</Link>
+            <span className="mx-2">/</span>
+            <Link to="/shop-by-region" className="hover:text-royal">Shop by Region</Link>
+            <span className="mx-2">/</span>
+            <span className="text-charcoal">{regionMeta.name}</span>
+          </nav>
+
+          <div className="region-hero relative mb-6 overflow-hidden rounded-xl bg-royal">
+            {regionImage && (
+              <img
+                src={regionImage}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover opacity-45"
+                loading="eager"
+                decoding="async"
+              />
+            )}
+            <div className="relative z-[1] bg-gradient-to-r from-[rgba(15,61,53,0.92)] via-[rgba(15,61,53,0.72)] to-[rgba(15,61,53,0.35)] px-5 py-7 sm:px-8 sm:py-9 md:px-10">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">Regional craft</p>
+              <h1 className="mt-2 max-w-xl font-display text-[1.85rem] leading-[1.1] tracking-[-0.03em] text-ivory sm:text-4xl">
+                Handcrafted treasures from {regionMeta.name}
+              </h1>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-[rgba(243,234,204,0.88)]">
+                {regionMeta.blurb}
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link
+                  to="/shop-by-region"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[rgba(243,234,204,0.35)] px-4 text-sm font-semibold text-ivory hover:border-gold hover:text-gold"
+                >
+                  Change Region <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
+                </Link>
+                <Link
+                  to="/marketplace"
+                  className="inline-flex min-h-11 items-center text-sm font-semibold text-[rgba(243,234,204,0.85)] hover:text-gold"
+                >
+                  View all products
+                </Link>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <header className="max-w-2xl space-y-2 md:space-y-3">
+          <Eyebrow>Shop</Eyebrow>
+          <h1 className="font-display text-[1.85rem] tracking-[-0.03em] text-charcoal sm:text-5xl">
+            Discover handcrafted products from across India.
+          </h1>
+          <p className="hidden text-sm leading-7 text-stone-600 md:block">
+            Shop finished products by category, craft, region, and artisan. Material is available as a filter — not the main way to browse.
+          </p>
+        </header>
+      )}
 
       {values.region && regionCrafts.length > 0 && (
         <div className="mt-4 flex min-w-0 gap-2 overflow-x-auto pb-1 hide-scrollbar md:flex-wrap md:overflow-visible">
@@ -229,14 +288,35 @@ const MarketplacePage: React.FC = () => {
           ) : !error ? (
             <div className="pt-10">
               <EmptyState
-                title={listings.length ? 'No work matches these filters.' : 'The collection is being assembled.'}
-                description={listings.length ? 'Try another search, craft, state, or material.' : 'Published work will appear here as artisans bring their pieces online.'}
+                title={
+                  values.region
+                    ? `No products are currently available from ${values.region}.`
+                    : listings.length
+                      ? 'No work matches these filters.'
+                      : 'The collection is being assembled.'
+                }
+                description={
+                  values.region
+                    ? 'Explore another region on the map, or browse the full marketplace.'
+                    : listings.length
+                      ? 'Try another search, craft, state, or material.'
+                      : 'Published work will appear here as artisans bring their pieces online.'
+                }
               >
-                {listings.length > 0 && (
+                {values.region ? (
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <Link to="/shop-by-region" className="button-dark inline-flex min-h-11 items-center rounded-md px-5 text-sm font-semibold">
+                      Explore Other Regions
+                    </Link>
+                    <Link to="/marketplace" className="button-light inline-flex min-h-11 items-center rounded-md px-5 text-sm font-semibold">
+                      View All Products
+                    </Link>
+                  </div>
+                ) : listings.length > 0 ? (
                   <button type="button" onClick={() => writeParams({ category: '', region: '', craft: '', material: '', price: '' }, 'featured', '')} className="button-light min-h-11 rounded-md px-5 text-sm font-semibold">
                     Clear filters
                   </button>
-                )}
+                ) : null}
               </EmptyState>
             </div>
           ) : null}

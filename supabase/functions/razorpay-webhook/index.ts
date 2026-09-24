@@ -144,7 +144,25 @@ serve(async (req) => {
       return json({ error: 'Razorpay order mismatch.' }, 400);
     }
 
+    console.info('[razorpay-webhook] event', {
+      event,
+      razorpayPaymentId,
+      razorpayOrderId,
+      orderId,
+      buyerId,
+    });
+
     const rzPayment = await fetchRazorpayPayment(razorpayPaymentId);
+    console.info('[razorpay-webhook] razorpay payment fetched', {
+      orderId,
+      razorpayPaymentId: rzPayment.id,
+      razorpayOrderId: rzPayment.order_id,
+      status: rzPayment.status,
+      amount: rzPayment.amount,
+      currency: rzPayment.currency,
+      method: rzPayment.method || null,
+      captured: Boolean(rzPayment.captured),
+    });
     if (rzPayment.order_id !== razorpayOrderId) {
       return json({ error: 'Payment/order mismatch.' }, 400);
     }
@@ -159,6 +177,8 @@ serve(async (req) => {
       return json({ success: true, ignored: true, reason: 'payment not captured' });
     }
 
+    // Sole order/payment mutation for webhook capture.
+    // RPC sets confirmed — this function must NEVER set orders.status (esp. delivered).
     const { data: finalizeData, error: finalizeError } = await admin.rpc('finalize_mock_upi_payment', {
       p_order_id: orderId,
       p_buyer_id: buyerId,
@@ -171,6 +191,7 @@ serve(async (req) => {
       return json({ error: finalizeError.message || 'Finalize failed.' }, 400);
     }
 
+    // payments metadata only — no orders.status write.
     await admin
       .from('payments')
       .update({
@@ -182,7 +203,28 @@ serve(async (req) => {
       .eq('id', toStringValue(paymentRow.id) || '');
 
     const result = asRecord(finalizeData);
-    if (!result.idempotent) {
+    const alreadyDone = Boolean(result.idempotent);
+    const rpcOrderStatus = (toStringValue(result.order_status) || 'confirmed').toLowerCase();
+
+    if (!alreadyDone && rpcOrderStatus === 'delivered') {
+      console.error('[razorpay-webhook] unexpected_delivered_after_payment', {
+        orderId,
+        razorpayPaymentId,
+        rpcOrderStatus,
+        note: 'finalize_mock_upi_payment must return confirmed, not delivered. Webhook did not update orders.status.',
+      });
+    }
+
+    console.info('[razorpay-webhook] finalize done', {
+      orderId,
+      razorpayPaymentId,
+      paymentStatus: toStringValue(result.payment_status),
+      orderStatus: toStringValue(result.order_status),
+      stockDeducted: Boolean(result.stock_deducted),
+      idempotent: alreadyDone,
+    });
+
+    if (!alreadyDone) {
       try {
         const { data: items } = await admin
           .from('order_items')
@@ -195,6 +237,10 @@ serve(async (req) => {
               .filter((id): id is string => Boolean(id)),
           ),
         );
+        const notifyOrderStatus =
+          rpcOrderStatus === 'delivered'
+            ? 'confirmed'
+            : (toStringValue(result.order_status) || 'confirmed');
         for (const vendorId of vendorIds) {
           const { data: authUser } = await admin.auth.admin.getUserById(vendorId);
           const email = toStringValue(authUser.user?.email);
@@ -208,7 +254,7 @@ serve(async (req) => {
             to: email!,
             sellerName: toStringValue(asRecord(profile).full_name) || 'Seller',
             orderId,
-            orderStatus: toStringValue(result.order_status) || 'delivered',
+            orderStatus: notifyOrderStatus,
             orderDate: new Date().toISOString(),
             lines: (items || [])
               .map(asRecord)

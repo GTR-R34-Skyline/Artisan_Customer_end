@@ -203,6 +203,11 @@ const ProductDetailPage: React.FC = () => {
                 {artisan.verification_status === 'verified' && <StatusLabel tone="success">Verified artisan</StatusLabel>}
                 {artisan.gi_certified && <StatusLabel>GI-certified craft</StatusLabel>}
               </div>
+              {typeof artisan.yearsOfExperience === 'number' && artisan.yearsOfExperience > 0 && (
+                <p className="mt-3 text-sm font-medium text-charcoal">
+                  {artisan.yearsOfExperience}+ Years of Experience
+                </p>
+              )}
               <Link to={`/craftsman/${artisan.id}`} className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-indigo">
                 More from this artisan
               </Link>

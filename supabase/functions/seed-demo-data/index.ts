@@ -9,16 +9,16 @@ const DEMO_IMAGE_URL =
 const DEMO_PASSWORD = "Demo@12345";
 
 const VENDORS = [
-  ["lakshmi.devi", "Lakshmi Devi", "Handloom", "Tamil Nadu", "ta"],
-  ["ramesh.kumar", "Ramesh Kumar", "Woodcraft", "Rajasthan", "hi"],
-  ["meena.kumari", "Meena Kumari", "Terracotta", "West Bengal", "bn"],
-  ["arjun.das", "Arjun Das", "Bamboo Craft", "Assam", "en"],
-  ["kavitha.s", "Kavitha Srinivasan", "Kalamkari", "Andhra Pradesh", "te"],
-  ["ravi.prasad", "Ravi Prasad", "Metal Craft", "Odisha", "en"],
-  ["sita.nair", "Sita Nair", "Handloom", "Kerala", "en"],
-  ["mohan.das", "Mohan Das", "Dokra", "West Bengal", "bn"],
-  ["anita.verma", "Anita Verma", "Woodcraft", "Karnataka", "en"],
-  ["ganesh.rao", "Ganesh Rao", "Bamboo Craft", "Maharashtra", "en"],
+  ["lakshmi.devi", "Lakshmi Devi", "Handloom", "Tamil Nadu", "ta", 15],
+  ["ramesh.kumar", "Ramesh Kumar", "Woodcraft", "Rajasthan", "hi", 20],
+  ["meena.kumari", "Meena Kumari", "Terracotta", "West Bengal", "bn", 12],
+  ["arjun.das", "Arjun Das", "Bamboo Craft", "Assam", "en", 8],
+  ["kavitha.s", "Kavitha Srinivasan", "Kalamkari", "Andhra Pradesh", "te", 18],
+  ["ravi.prasad", "Ravi Prasad", "Metal Craft", "Odisha", "en", 22],
+  ["sita.nair", "Sita Nair", "Handloom", "Kerala", "en", 10],
+  ["mohan.das", "Mohan Das", "Dokra", "West Bengal", "bn", 25],
+  ["anita.verma", "Anita Verma", "Woodcraft", "Karnataka", "en", 14],
+  ["ganesh.rao", "Ganesh Rao", "Bamboo Craft", "Maharashtra", "en", 9],
 ] as const;
 
 const BUYERS = [
@@ -178,6 +178,7 @@ export default {
           craft,
           state,
           language,
+          experienceYears,
         ] of VENDORS) {
           const user = await findOrCreateUser(
             admin,
@@ -221,17 +222,25 @@ export default {
             (vendor) => vendor[0] === username,
           );
 
-          const { error: vendorError } = await admin
+          const vendorPayload: Record<string, unknown> = {
+            id: user.id,
+            craft_type: craft,
+            gi_certified: vendorIndex % 2 === 0,
+            verification_status: "verified",
+            experience_years: experienceYears,
+          };
+
+          let { error: vendorError } = await admin
             .from("vendors")
-            .upsert(
-              {
-                id: user.id,
-                craft_type: craft,
-                gi_certified: vendorIndex % 2 === 0,
-                verification_status: "verified",
-              },
-              { onConflict: "id" },
-            );
+            .upsert(vendorPayload, { onConflict: "id" });
+
+          if (vendorError) {
+            const { experience_years: _ignored, ...withoutExperience } = vendorPayload;
+            const retry = await admin
+              .from("vendors")
+              .upsert(withoutExperience, { onConflict: "id" });
+            vendorError = retry.error;
+          }
 
           if (vendorError) {
             throw new Error(

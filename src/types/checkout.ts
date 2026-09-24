@@ -67,6 +67,9 @@ export const orderStatusLabel = (status: string | null | undefined): string => {
   switch ((status || '').toLowerCase()) {
     case 'processing':
       return 'Processing';
+    case 'confirmed':
+    case 'paid':
+      return 'Confirmed';
     case 'shipped':
       return 'Shipped';
     case 'delivered':

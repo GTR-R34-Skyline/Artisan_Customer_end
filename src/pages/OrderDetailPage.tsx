@@ -11,6 +11,7 @@ import { BuyerShipment, shipmentStatusLabel } from '../types/shipment';
 const statusTone = (status: string | null | undefined): 'success' | 'warning' | 'neutral' => {
   const value = (status || '').toLowerCase();
   if (value === 'delivered' || value === 'success' || value === 'shipped') return 'success';
+  if (value === 'confirmed' || value === 'paid') return 'success';
   if (value === 'failed' || value === 'cancelled' || value === 'canceled') return 'warning';
   return 'neutral';
 };

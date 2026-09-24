@@ -8,6 +8,8 @@ export type ProductStatus =
   | 'under_review'
   | 'synced';
 
+export type ProductBadge = 'bestseller' | 'trending' | null;
+
 export interface MarketplaceProduct {
   id: string;
   vendor_id: string | null;
@@ -29,6 +31,11 @@ export interface MarketplaceProduct {
   status: ProductStatus;
   created_at: string;
   updated_at: string | null;
+  /** Product card badge — only render when set. */
+  badge?: ProductBadge;
+  /** Average star rating (supports decimals). */
+  rating?: number | null;
+  reviewCount?: number | null;
 }
 
 export interface MarketplaceProfile {
@@ -41,6 +48,8 @@ export interface MarketplaceProfile {
   craft_type?: string | null;
   gi_certified?: boolean | null;
   verification_status?: string | null;
+  /** Years of practice — omit/hide when unknown. */
+  yearsOfExperience?: number | null;
 }
 
 export interface MarketplaceListing extends MarketplaceProduct {

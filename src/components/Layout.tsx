@@ -17,8 +17,9 @@ interface LayoutProps {
 const NAV_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'Shop', to: '/marketplace' },
+  { label: 'Shop by Region', to: '/shop-by-region' },
   { label: 'New Arrivals', to: '/marketplace?sort=newest' },
-  { label: 'Artisans', to: '/artisans' }
+  { label: 'Artisans', to: '/artisans' },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
@@ -225,8 +226,10 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
                   to={link.to}
                   className={`category-link text-[13px] font-medium ${
                     (link.to === '/' && location.pathname === '/')
-                    || (link.to === '/marketplace' && marketplaceActive && !categoryParam)
+                    || (link.to === '/marketplace' && marketplaceActive && !categoryParam && !location.search.includes('sort=newest'))
+                    || (link.to === '/shop-by-region' && location.pathname.startsWith('/shop-by-region'))
                     || (link.to.includes('newest') && location.search.includes('sort=newest'))
+                    || (link.to === '/artisans' && location.pathname.startsWith('/artisans'))
                       ? 'is-active'
                       : ''
                   }`}

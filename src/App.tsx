@@ -11,6 +11,7 @@ import { WishlistProvider } from './context/WishlistContext';
 import ArtisansPage from './pages/ArtisansPage';
 const HomePage = lazy(() => import('./pages/HomePage'));
 const MarketplacePage = lazy(() => import('./pages/MarketplacePage'));
+const ShopByRegionPage = lazy(() => import('./pages/ShopByRegionPage'));
 const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
 const CraftsmanPage = lazy(() => import('./pages/CraftsmanPage'));
 const CartPage = lazy(() => import('./pages/CartPage'));
@@ -47,6 +48,7 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/marketplace" element={<MarketplacePage />} />
+          <Route path="/shop-by-region" element={<ShopByRegionPage />} />
           <Route path="/marketplace/:productId" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />

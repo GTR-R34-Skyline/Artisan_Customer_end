@@ -1,4 +1,4 @@
-import { getProductImage, getProductTitle, MarketplaceListing } from '../types/marketplace';
+import { getProductImage, MarketplaceListing } from '../types/marketplace';
 import { CRAFT_NOTES, listingsByRegion, pickFeaturedListings, uniqueArtisans } from './marketplace';
 import { shopCategoriesFromListings, shopCategoryHref, ShopCategoryGroup } from './shopCategories';
 
@@ -20,28 +20,20 @@ export interface CollectionTile {
   to: string;
 }
 
-const HERO_COPY: Array<{ eyebrow: string; title: string; subtitle: string }> = [
-  {
-    eyebrow: 'New Collection',
-    title: 'India, Woven Anew.',
-    subtitle: 'Discover handcrafted textiles from India’s artisans.',
-  },
-  {
-    eyebrow: 'Home & Living',
-    title: 'Formed by Hand.',
-    subtitle: 'Pottery, woodcraft, and décor for everyday living.',
-  },
-  {
-    eyebrow: 'Regional Craft',
-    title: 'Crafted Across India.',
-    subtitle: 'Shop authentic work shaped by place and tradition.',
-  },
-  {
-    eyebrow: 'Artisan Campaign',
-    title: 'Meet the Makers.',
-    subtitle: 'Every piece carries the story of who made it.',
-  },
-];
+/** Curated hero/collection imagery provided for key campaigns. */
+export const HERO_FEATURE_IMAGES = {
+  textiles: '/hero/india-woven-anew.jpg',
+  bamboo: '/hero/bamboo-cane.jpg',
+} as const;
+
+const isTextileGroup = (label: string) =>
+  /saree|textile|handloom|fabric/i.test(label);
+
+const isBambooGroup = (label: string) =>
+  /bamboo|cane/i.test(label);
+
+const isWoodGroup = (label: string) =>
+  /wood/i.test(label) && !isBambooGroup(label);
 
 /** Prefer unique product images across homepage sections. */
 export const pickDistinctImage = (
@@ -62,51 +54,74 @@ export const pickDistinctImage = (
   return null;
 };
 
+/** Fixed hero lineup — only these four slides, in this order. */
+const HERO_SLIDE_DEFS: Array<{
+  match: (label: string) => boolean;
+  eyebrow: string;
+  title: (group: ShopCategoryGroup) => string;
+  subtitle: (group: ShopCategoryGroup) => string;
+  image: (group: ShopCategoryGroup, used: Set<string>) => string | null;
+}> = [
+  {
+    match: isWoodGroup,
+    eyebrow: 'Home & Living',
+    title: (group) => group.label,
+    subtitle: (group) => `Shop ${group.label.toLowerCase()} from independent makers across India.`,
+    // Keep original woodcraft product photography as-is.
+    image: (group, used) => pickDistinctImage(group.items, used),
+  },
+  {
+    match: isTextileGroup,
+    eyebrow: 'New Collection',
+    title: () => 'India, Woven Anew.',
+    subtitle: () => 'Discover handcrafted textiles from India’s artisans.',
+    image: (_group, used) => {
+      used.add(HERO_FEATURE_IMAGES.textiles);
+      return HERO_FEATURE_IMAGES.textiles;
+    },
+  },
+  {
+    match: isBambooGroup,
+    eyebrow: 'Regional Craft',
+    title: (group) => group.label,
+    subtitle: (group) => `Shop ${group.label.toLowerCase()} from independent makers across India.`,
+    image: (_group, used) => {
+      used.add(HERO_FEATURE_IMAGES.bamboo);
+      return HERO_FEATURE_IMAGES.bamboo;
+    },
+  },
+  {
+    match: (label) => /metal/i.test(label),
+    eyebrow: 'Regional Craft',
+    title: (group) => group.label,
+    subtitle: (group) => `Shop ${group.label.toLowerCase()} from independent makers across India.`,
+    image: (group, used) => pickDistinctImage(group.items, used),
+  },
+];
+
 export const buildHeroSlides = (listings: MarketplaceListing[]): HeroSlide[] => {
   const groups = shopCategoriesFromListings(listings).filter((group) =>
     group.items.some((item) => Boolean(getProductImage(item))),
   );
   const used = new Set<string>();
-  const slides: HeroSlide[] = [];
 
-  groups.slice(0, 4).forEach((group, index) => {
-    const image = pickDistinctImage(group.items, used);
-    if (!image) return;
-    const copy = HERO_COPY[index % HERO_COPY.length];
-    slides.push({
-      id: `hero-${group.label}`,
-      image,
-      eyebrow: copy.eyebrow,
-      title: index === 0 ? copy.title : group.label,
-      subtitle:
-        index === 0
-          ? copy.subtitle
-          : `Shop ${group.label.toLowerCase()} from independent makers across India.`,
-      cta: 'Shop Now',
-      to: shopCategoryHref(group),
-    });
-  });
-
-  if (slides.length < 2) {
-    const featured = pickFeaturedListings(listings, 4);
-    featured.forEach((listing, index) => {
-      const image = getProductImage(listing);
-      if (!image || used.has(image)) return;
-      used.add(image);
-      const copy = HERO_COPY[index % HERO_COPY.length];
-      slides.push({
-        id: listing.id,
+  return HERO_SLIDE_DEFS.flatMap((def) => {
+    const group = groups.find((g) => def.match(g.label));
+    if (!group) return [];
+    const image = def.image(group, used);
+    if (!image) return [];
+    return [
+      {
+        id: `hero-${group.label}`,
         image,
-        eyebrow: copy.eyebrow,
-        title: getProductTitle(listing),
-        subtitle: copy.subtitle,
+        eyebrow: def.eyebrow,
+        title: def.title(group),
+        subtitle: def.subtitle(group),
         cta: 'Shop Now',
-        to: `/marketplace/${listing.id}`,
-      });
-    });
-  }
-
-  return slides.slice(0, 4);
+        to: shopCategoryHref(group),
+      },
+    ];
+  });
 };
 
 export const enrichShopCategories = (listings: MarketplaceListing[]) => {
@@ -141,13 +156,16 @@ export const buildCollectionTiles = (groups: ShopCategoryGroup[]): CollectionTil
   return groups.slice(0, 6).map((group) => {
     const primaryCategory = group.categories[0];
     const note = primaryCategory ? CRAFT_NOTES[primaryCategory] : undefined;
+    let image = pickDistinctImage(group.items, used);
+    if (isTextileGroup(group.label)) image = HERO_FEATURE_IMAGES.textiles;
+    if (isBambooGroup(group.label)) image = HERO_FEATURE_IMAGES.bamboo;
     return {
       id: group.label,
       name: `${group.label} Collection`,
       blurb: note
         ? note.split('.')[0] + '.'
         : `Explore ${group.label.toLowerCase()} from artisans across India.`,
-      image: pickDistinctImage(group.items, used),
+      image,
       to: shopCategoryHref(group),
     };
   });

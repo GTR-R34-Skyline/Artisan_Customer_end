@@ -327,11 +327,24 @@ const VendorOnboarding: React.FC = () => {
         preferred_language: selectedLanguage,
       }).eq('id', user.id);
       if (profileError) throw profileError;
-      const { error: vendorError } = await supabase.from('vendors').upsert([{
+      const vendorPayload: Record<string, unknown> = {
         id: user.id,
         craft_type: profileState.craft,
         verification_status: 'pending',
-      }]);
+      };
+      if (profileState.experienceYears) {
+        vendorPayload.experience_years = profileState.experienceYears;
+      }
+      let { error: vendorError } = await supabase.from('vendors').upsert([vendorPayload]);
+      if (vendorError && profileState.experienceYears) {
+        // Column may not exist yet on older DBs — retry without it.
+        const retry = await supabase.from('vendors').upsert([{
+          id: user.id,
+          craft_type: profileState.craft,
+          verification_status: 'pending',
+        }]);
+        vendorError = retry.error;
+      }
       if (vendorError) throw vendorError;
       const { error: applicationError } = await supabase.from('vendor_applications').insert([{
         name: profileState.name,

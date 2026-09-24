@@ -20,6 +20,12 @@ const corsHeaders = {
 
 const PUBLIC_STATUSES = new Set(['approved', 'published', 'synced']);
 
+/**
+ * Fixed Demo Courier for the marketplace logistics demo.
+ * Keep in sync with Artisan src/config/logistics.ts (DEMO_COURIER_PROFILE_ID).
+ */
+const DEMO_COURIER_PROFILE_ID = '3734f939-b7c3-4f1d-bdce-a2460cf76a58';
+
 const json = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -46,6 +52,9 @@ const toNumber = (value: unknown): number => {
   return 0;
 };
 
+const uniqueStrings = (values: Array<string | null | undefined>): string[] =>
+  Array.from(new Set(values.filter((value): value is string => Boolean(value && value.trim()))));
+
 const productStock = (row: Record<string, unknown>): number =>
   Math.max(0, toNumber(row.stock_count ?? row.quantity));
 
@@ -63,6 +72,100 @@ const productPrice = (row: Record<string, unknown>): number => {
   const suggested = row.suggested_price;
   if (finalPrice !== null && finalPrice !== undefined) return Math.max(0, toNumber(finalPrice));
   return Math.max(0, toNumber(suggested));
+};
+
+const buildTrackingNumber = (orderId: string, sequence: number): string => {
+  const orderPrefix = orderId.replace(/-/g, '').slice(0, 8).toUpperCase();
+  const suffix = String(Math.max(1, sequence)).padStart(4, '0');
+  return `MC${orderPrefix}${suffix}`;
+};
+
+const estimatedDeliveryDate = (): string => {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + 5);
+  return date.toISOString().slice(0, 10);
+};
+
+/** Create one pending shipment per vendor on a paid order. Idempotent. Does not dispatch. */
+const ensureShipmentsForPaidOrder = async (
+  admin: SupabaseClient,
+  orderId: string,
+): Promise<void> => {
+  const { data: order, error: orderError } = await admin
+    .from('orders')
+    .select('id, buyer_id, shipping_address, status')
+    .eq('id', orderId)
+    .maybeSingle();
+
+  if (orderError) throw orderError;
+  if (!order) throw new Error('Order not found while preparing shipments.');
+
+  const orderRecord = asRecord(order);
+  const buyerId = toStringValue(orderRecord.buyer_id);
+  const destination = toStringValue(orderRecord.shipping_address);
+  if (!buyerId) throw new Error('Order buyer is missing.');
+  if (!destination) throw new Error('Order shipping address is missing.');
+
+  const { data: itemRows, error: itemsError } = await admin
+    .from('order_items')
+    .select('vendor_id')
+    .eq('order_id', orderId);
+
+  if (itemsError) throw itemsError;
+
+  const vendorIds = uniqueStrings(
+    (itemRows || []).map((row) => toStringValue(asRecord(row).vendor_id)),
+  );
+  if (!vendorIds.length) return;
+
+  const { data: existingRows, error: existingError } = await admin
+    .from('shipments')
+    .select('id, vendor_id, tracking_number')
+    .eq('order_id', orderId);
+
+  if (existingError) throw existingError;
+
+  const existingVendorIds = new Set(
+    (existingRows || [])
+      .map((row) => toStringValue(asRecord(row).vendor_id))
+      .filter((value): value is string => Boolean(value)),
+  );
+
+  const missingVendorIds = vendorIds.filter((vendorId) => !existingVendorIds.has(vendorId));
+  if (!missingVendorIds.length) return;
+
+  const { count: shipmentCount, error: countError } = await admin
+    .from('shipments')
+    .select('id', { count: 'exact', head: true });
+
+  if (countError) throw countError;
+
+  let sequence = (shipmentCount || 0) + 1;
+  const inserts = missingVendorIds.map((vendorId) => {
+    const trackingNumber = buildTrackingNumber(orderId, sequence);
+    sequence += 1;
+    return {
+      order_id: orderId,
+      vendor_id: vendorId,
+      buyer_id: buyerId,
+      courier_id: null,
+      carrier: 'Mock Courier',
+      tracking_number: trackingNumber,
+      status: 'pending',
+      origin: 'Artisan Origin',
+      destination,
+      estimated_delivery_date: estimatedDeliveryDate(),
+      dispatched_at: null,
+      picked_up_at: null,
+      delivered_at: null,
+    };
+  });
+
+  const { error: insertError } = await admin.from('shipments').insert(inserts);
+  if (insertError) {
+    if (insertError.code === '23505') return;
+    throw insertError;
+  }
 };
 
 const notifySellersForPaidOrder = async (
@@ -163,6 +266,17 @@ const finalizeVerifiedRazorpayPayment = async (
     methodLabel?: string | null;
   },
 ): Promise<Record<string, unknown>> => {
+  console.info('[marketplace-checkout] finalize_razorpay start', {
+    orderId: input.orderId,
+    buyerId: input.buyerId,
+    razorpayOrderId: input.razorpayOrderId,
+    razorpayPaymentId: input.razorpayPaymentId,
+    method: input.methodLabel || null,
+  });
+
+  // Sole order/payment mutation path for Razorpay success.
+  // The RPC sets payments.success, stock_deducted, and orders.status = confirmed.
+  // This Edge Function must NEVER update orders.status (especially not to delivered).
   const { data, error } = await admin.rpc('finalize_mock_upi_payment', {
     p_order_id: input.orderId,
     p_buyer_id: input.buyerId,
@@ -178,9 +292,20 @@ const finalizeVerifiedRazorpayPayment = async (
 
   const result = asRecord(data);
   const alreadyDone = Boolean(result.idempotent);
+  const rpcOrderStatus = (toStringValue(result.order_status) || 'confirmed').toLowerCase();
+
+  if (!alreadyDone && rpcOrderStatus === 'delivered') {
+    console.error('[marketplace-checkout] unexpected_delivered_after_payment', {
+      orderId: input.orderId,
+      razorpayPaymentId: input.razorpayPaymentId,
+      rpcOrderStatus,
+      note: 'finalize_mock_upi_payment must return confirmed, not delivered. App did not update orders.status.',
+    });
+  }
 
   // Existing RPC forces payment_method='upi'. Keep an allowed ARTISAN method only.
   // Store Razorpay payment id in transaction_id; Razorpay order id remains in upi_app.
+  // payments update only — no orders.status write.
   const artisanMethod = mapRazorpayMethodToArtisan(input.methodLabel);
   await admin
     .from('payments')
@@ -193,13 +318,25 @@ const finalizeVerifiedRazorpayPayment = async (
     .eq('order_id', input.orderId)
     .eq('buyer_id', input.buyerId);
 
+  // Seller email label only. Prefer confirmed for a fresh payment success.
+  const orderStatusForNotify =
+    !alreadyDone && rpcOrderStatus === 'delivered'
+      ? 'confirmed'
+      : (toStringValue(result.order_status) || 'confirmed');
+
   if (!alreadyDone) {
-    await notifySellersForPaidOrder(
-      admin,
-      input.orderId,
-      toStringValue(result.order_status) || 'delivered',
-    );
+    await notifySellersForPaidOrder(admin, input.orderId, orderStatusForNotify);
   }
+
+  console.info('[marketplace-checkout] finalize_razorpay done', {
+    orderId: input.orderId,
+    razorpayPaymentId: input.razorpayPaymentId,
+    paymentStatus: toStringValue(result.payment_status),
+    orderStatus: toStringValue(result.order_status),
+    notifyOrderStatus: orderStatusForNotify,
+    stockDeducted: Boolean(result.stock_deducted),
+    idempotent: alreadyDone,
+  });
 
   return {
     ...result,
@@ -225,26 +362,60 @@ serve(async (req) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const authorization = req.headers.get('Authorization') || '';
+    const accessToken = authorization.replace(/^Bearer\s+/i, '').trim();
 
     if (!supabaseUrl || !anonKey || !serviceRoleKey) {
       return json({ error: 'Server configuration is incomplete.' }, 500);
     }
 
-    if (!authorization) {
+    if (!accessToken) {
+      console.warn('[marketplace-checkout] auth failed', {
+        hasAuthorizationHeader: Boolean(authorization),
+        reason: 'missing_bearer_token',
+      });
       return json({ error: 'Missing authorization.' }, 401);
     }
 
+    // The JS client falls back to the anon key when no user session is attached.
+    // That must never be treated as a buyer identity.
+    if (accessToken === anonKey) {
+      console.warn('[marketplace-checkout] auth failed', {
+        hasAuthorizationHeader: true,
+        reason: 'anon_key_used_as_bearer',
+      });
+      return json({ error: 'Invalid session.' }, 401);
+    }
+
     const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authorization } },
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
     });
-    const { data: userData, error: userError } = await userClient.auth.getUser();
+    // Prefer token argument so Auth does not depend on Deno local storage.
+    const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
     const userId = userData.user?.id;
     if (userError || !userId) {
-      return json({ error: 'Invalid session.' }, 401);
+      console.warn('[marketplace-checkout] auth failed', {
+        hasAuthorizationHeader: true,
+        reason: 'getUser_failed',
+        authError: userError?.message || 'no_user',
+      });
+      return json({ error: 'Invalid session. Please sign in again.' }, 401);
     }
 
     const body = asRecord(await req.json());
     const action = toStringValue(body.action);
+    console.info('[marketplace-checkout] auth success', {
+      userId,
+      action,
+    });
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
     if (action === 'create_order') {
@@ -481,6 +652,11 @@ serve(async (req) => {
       const orderId = toStringValue(body.orderId) || toStringValue(body.order_id);
       if (!orderId) return json({ error: 'Order id is required.' }, 400);
 
+      console.info('[marketplace-checkout] create_razorpay_order start', {
+        userId,
+        orderId,
+      });
+
       const { keyId } = getRazorpayCredentials();
 
       const { data: order, error: orderError } = await admin
@@ -517,6 +693,7 @@ serve(async (req) => {
 
       const existingRazorpayOrderId = razorpayOrderIdFromPayment(paymentRow.upi_app);
       let razorpayOrderId = existingRazorpayOrderId;
+      let createdNewRazorpayOrder = false;
 
       if (!razorpayOrderId) {
         const created = await createRazorpayOrder({
@@ -532,6 +709,7 @@ serve(async (req) => {
           return json({ error: 'Razorpay order amount mismatch.' }, 500);
         }
         razorpayOrderId = created.id;
+        createdNewRazorpayOrder = true;
 
         const { error: updateError } = await admin
           .from('payments')
@@ -573,6 +751,14 @@ serve(async (req) => {
         // Optional.
       }
 
+      console.info('[marketplace-checkout] create_razorpay_order ok', {
+        userId,
+        orderId,
+        amountPaise,
+        createdNewRazorpayOrder,
+        hasRazorpayOrderId: Boolean(razorpayOrderId),
+      });
+
       return json({
         success: true,
         keyId,
@@ -598,6 +784,14 @@ serve(async (req) => {
       if (!orderId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
         return json({ error: 'Payment verification details are incomplete.' }, 400);
       }
+
+      console.info('[marketplace-checkout] verify_razorpay_payment received', {
+        orderId,
+        buyerId: userId,
+        razorpayOrderId,
+        razorpayPaymentId,
+        hasSignature: Boolean(razorpaySignature),
+      });
 
       const { keySecret } = getRazorpayCredentials();
 
@@ -661,6 +855,16 @@ serve(async (req) => {
       }
 
       const rzPayment = await fetchRazorpayPayment(razorpayPaymentId);
+      console.info('[marketplace-checkout] razorpay payment fetched', {
+        orderId,
+        razorpayPaymentId: rzPayment.id,
+        razorpayOrderId: rzPayment.order_id,
+        status: rzPayment.status,
+        amount: rzPayment.amount,
+        currency: rzPayment.currency,
+        method: rzPayment.method || null,
+        captured: Boolean(rzPayment.captured),
+      });
       if (rzPayment.order_id !== razorpayOrderId) {
         return json({ error: 'Razorpay payment does not belong to this order.' }, 400);
       }
@@ -828,6 +1032,118 @@ serve(async (req) => {
       if (shipmentError) throw shipmentError;
 
       return json({ success: true, shipments: (shipmentRows || []).map(asRecord) });
+    }
+
+    if (action === 'ensure_shipments') {
+      const orderId = toStringValue(body.orderId) || toStringValue(body.order_id);
+      if (!orderId) return json({ error: 'Order id is required.' }, 400);
+
+      const { data: order, error: orderError } = await admin
+        .from('orders')
+        .select('id, buyer_id')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (orderError) throw orderError;
+      if (!order) return json({ error: 'Order not found.' }, 404);
+
+      const orderBuyerId = toStringValue(asRecord(order).buyer_id);
+      const isBuyer = orderBuyerId === userId;
+      let isVendor = false;
+      if (!isBuyer) {
+        const { data: vendorItems, error: vendorItemsError } = await admin
+          .from('order_items')
+          .select('id')
+          .eq('order_id', orderId)
+          .eq('vendor_id', userId)
+          .limit(1);
+        if (vendorItemsError) throw vendorItemsError;
+        isVendor = Boolean(vendorItems?.length);
+      }
+
+      if (!isBuyer && !isVendor) {
+        return json({ error: 'You cannot prepare shipments for this order.' }, 403);
+      }
+
+      const { data: payment, error: paymentError } = await admin
+        .from('payments')
+        .select('status')
+        .eq('order_id', orderId)
+        .maybeSingle();
+      if (paymentError) throw paymentError;
+
+      const paymentStatus = toStringValue(asRecord(payment).status)?.toLowerCase();
+      if (paymentStatus !== 'success') {
+        return json({ success: true, prepared: false, reason: 'payment_not_success' });
+      }
+
+      await ensureShipmentsForPaidOrder(admin, orderId);
+      console.info('[marketplace-checkout] ensure_shipments ok', { orderId, userId });
+      return json({ success: true, prepared: true });
+    }
+
+    if (action === 'dispatch_shipment') {
+      const shipmentId =
+        toStringValue(body.shipmentId)
+        || toStringValue(body.shipment_id)
+        || toStringValue(body.p_shipment_id);
+      if (!shipmentId) return json({ error: 'Shipment id is required.' }, 400);
+
+      const { data: existingShipment, error: existingError } = await admin
+        .from('shipments')
+        .select('id, vendor_id, status, courier_id, tracking_number, order_id')
+        .eq('id', shipmentId)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+      if (!existingShipment) return json({ error: 'Shipment not found.' }, 404);
+
+      const shipmentRecord = asRecord(existingShipment);
+      const shipmentVendorId = toStringValue(shipmentRecord.vendor_id);
+      if (!shipmentVendorId || shipmentVendorId !== userId) {
+        return json({ error: 'You can only dispatch your own shipments.' }, 403);
+      }
+
+      const currentStatus = toStringValue(shipmentRecord.status) || '';
+      if (!['pending', 'seller_processing'].includes(currentStatus)) {
+        return json({ error: 'This shipment cannot be dispatched from its current status.' }, 400);
+      }
+
+      const { data: rpcData, error: rpcError } = await userClient.rpc('seller_dispatch_shipment', {
+        p_shipment_id: shipmentId,
+      });
+
+      if (rpcError) {
+        return json({ error: rpcError.message || 'The shipment could not be marked as dispatched.' }, 400);
+      }
+
+      const { data: assigned, error: assignError } = await admin
+        .from('shipments')
+        .update({ courier_id: DEMO_COURIER_PROFILE_ID })
+        .eq('id', shipmentId)
+        .eq('vendor_id', userId)
+        .eq('status', 'dispatched')
+        .select(
+          'id, order_id, vendor_id, buyer_id, courier_id, carrier, tracking_number, status, origin, destination, estimated_delivery_date, dispatched_at, picked_up_at, delivered_at, created_at, updated_at',
+        )
+        .maybeSingle();
+
+      if (assignError) {
+        return json({
+          error: assignError.message || 'Shipment was dispatched, but the Demo Courier could not be assigned.',
+        }, 500);
+      }
+
+      console.info('[marketplace-checkout] dispatch_shipment ok', {
+        shipmentId,
+        vendorId: userId,
+        orderId: toStringValue(shipmentRecord.order_id),
+        courierAssigned: Boolean(assigned),
+      });
+
+      return json({
+        success: true,
+        shipment: assigned || rpcData,
+      });
     }
 
     return json({ error: 'Unsupported action.' }, 400);

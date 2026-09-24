@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { invokeMarketplaceCheckout } from '../lib/invokeMarketplaceCheckout';
 import {
   BuyerOrderHistoryEntry,
   CHECKOUT_SESSION_KEY,
@@ -30,18 +31,39 @@ const toNumber = (value: unknown): number => {
 };
 
 const readFunctionError = async (error: unknown): Promise<string> => {
+  if (error instanceof Error && error.message && !error.message.includes('Failed to send a request')) {
+    // Prefer explicit messages from invokeMarketplaceCheckout (timeouts, server error strings).
+    if (!('context' in error)) return error.message;
+  }
+
   if (error && typeof error === 'object' && 'context' in error) {
     const context = (error as { context?: Response }).context;
     if (context instanceof Response) {
       try {
-        const payload = asRecord(await context.json());
-        return toStringValue(payload.error) || toStringValue(payload.message) || 'Checkout request failed.';
+        const payload = asRecord(await context.clone().json());
+        return (
+          toStringValue(payload.error)
+          || toStringValue(payload.message)
+          || toStringValue(payload.msg)
+          || (error instanceof Error ? error.message : null)
+          || `Checkout request failed (${context.status}).`
+        );
       } catch {
-        return 'Checkout request failed.';
+        const bodyText =
+          'bodyText' in error && typeof (error as { bodyText?: unknown }).bodyText === 'string'
+            ? (error as { bodyText: string }).bodyText
+            : null;
+        if (bodyText?.trim()) return bodyText.trim().slice(0, 300);
+        return (
+          (error instanceof Error ? error.message : null)
+          || `Checkout request failed (${context.status}).`
+        );
       }
     }
   }
-  return error instanceof Error ? error.message : 'Checkout request failed.';
+
+  if (error instanceof Error && error.message) return error.message;
+  return 'Checkout request failed.';
 };
 
 const mapOrder = (row: Record<string, unknown>): CheckoutOrder => ({
@@ -112,13 +134,11 @@ export const createCheckoutOrder = async (input: {
   shippingAddress: string;
   idempotencyKey: string;
 }): Promise<{ order: CheckoutOrder; payment: CheckoutPayment | null; idempotent: boolean }> => {
-  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-    body: {
-      action: 'create_order',
-      items: input.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
-      shippingAddress: input.shippingAddress,
-      idempotencyKey: input.idempotencyKey,
-    },
+  const { data, error } = await invokeMarketplaceCheckout({
+    action: 'create_order',
+    items: input.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+    shippingAddress: input.shippingAddress,
+    idempotencyKey: input.idempotencyKey,
   });
 
   if (error) throw new Error(await readFunctionError(error));
@@ -205,8 +225,8 @@ const listBuyerOrdersFromTables = async (): Promise<BuyerOrderHistoryEntry[]> =>
 
 export const listBuyerOrders = async (): Promise<BuyerOrderHistoryEntry[]> => {
   try {
-    const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-      body: { action: 'list_orders' },
+    const { data, error } = await invokeMarketplaceCheckout({
+      action: 'list_orders',
     });
 
     if (!error) {
@@ -280,8 +300,9 @@ export const formatOrderDate = (value: string | null): string => {
 };
 
 export const getCheckoutSnapshot = async (orderId: string): Promise<CheckoutSnapshot> => {
-  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-    body: { action: 'get_checkout', orderId },
+  const { data, error } = await invokeMarketplaceCheckout({
+    action: 'get_checkout',
+    orderId,
   });
 
   if (error) throw new Error(await readFunctionError(error));
@@ -317,8 +338,9 @@ export interface RazorpayCheckoutSession {
 }
 
 export const createRazorpayCheckoutSession = async (orderId: string): Promise<RazorpayCheckoutSession> => {
-  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-    body: { action: 'create_razorpay_order', orderId },
+  const { data, error } = await invokeMarketplaceCheckout({
+    action: 'create_razorpay_order',
+    orderId,
   });
 
   if (error) throw new Error(await readFunctionError(error));
@@ -353,14 +375,12 @@ export const verifyRazorpayPayment = async (input: {
   razorpayPaymentId: string;
   razorpaySignature: string;
 }): Promise<Record<string, unknown>> => {
-  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-    body: {
-      action: 'verify_razorpay_payment',
-      orderId: input.orderId,
-      razorpayOrderId: input.razorpayOrderId,
-      razorpayPaymentId: input.razorpayPaymentId,
-      razorpaySignature: input.razorpaySignature,
-    },
+  const { data, error } = await invokeMarketplaceCheckout({
+    action: 'verify_razorpay_payment',
+    orderId: input.orderId,
+    razorpayOrderId: input.razorpayOrderId,
+    razorpayPaymentId: input.razorpayPaymentId,
+    razorpaySignature: input.razorpaySignature,
   });
 
   if (error) throw new Error(await readFunctionError(error));
@@ -370,8 +390,9 @@ export const verifyRazorpayPayment = async (input: {
 };
 
 export const markRazorpayPaymentFailed = async (orderId: string): Promise<Record<string, unknown>> => {
-  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-    body: { action: 'mark_razorpay_failed', orderId },
+  const { data, error } = await invokeMarketplaceCheckout({
+    action: 'mark_razorpay_failed',
+    orderId,
   });
 
   if (error) throw new Error(await readFunctionError(error));
@@ -381,8 +402,9 @@ export const markRazorpayPaymentFailed = async (orderId: string): Promise<Record
 };
 
 export const retryCheckoutPayment = async (orderId: string): Promise<Record<string, unknown>> => {
-  const { data, error } = await supabase.functions.invoke('marketplace-checkout', {
-    body: { action: 'retry_payment', orderId },
+  const { data, error } = await invokeMarketplaceCheckout({
+    action: 'retry_payment',
+    orderId,
   });
 
   if (error) throw new Error(await readFunctionError(error));
