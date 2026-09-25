@@ -542,7 +542,7 @@ div.market-search {
 
 .product-card {
   overflow: hidden;
-  background: #faf7f2;
+  background: #f7f1e8;
   border: 1px solid #efe8dc;
   border-radius: 0.65rem;
   transition: transform 160ms ease, opacity 160ms ease, box-shadow 200ms ease;

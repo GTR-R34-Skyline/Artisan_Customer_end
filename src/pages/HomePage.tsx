@@ -218,7 +218,7 @@ const HomePage: React.FC = () => {
           title="Featured Picks"
           subtitle="A cross-section of the collection to explore next."
           to="/marketplace"
-          className="bg-cream py-5 md:py-7"
+          className="bg-white py-5 md:py-7"
           flush
         >
           <div className="product-grid product-grid-dense mt-4">
@@ -261,7 +261,7 @@ const HomePage: React.FC = () => {
           title="Meet Our Artisans"
           subtitle="Photographs of the work — and the makers behind it."
           to="/artisans"
-          className="bg-cream py-5 md:py-7"
+          className="bg-white py-5 md:py-7"
           flush
         >
           <div className="mt-4 min-w-0">
