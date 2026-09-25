@@ -5,7 +5,7 @@
 @layer base {
   :root {
     color: #2d3748;
-    background: #faf7f2;
+    background: #ffffff;
     font-family: "Plus Jakarta Sans", "Noto Sans", ui-sans-serif, system-ui, sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -36,7 +36,7 @@
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
-    background: #faf7f2;
+    background: #ffffff;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -49,7 +49,7 @@
     margin: 0;
     overflow-x: hidden;
     overscroll-behavior-x: none;
-    background: #faf7f2;
+    background: #ffffff;
   }
 
   #root {
@@ -542,7 +542,7 @@ div.market-search {
 
 .product-card {
   overflow: hidden;
-  background: #ffffff;
+  background: #faf7f2;
   border: 1px solid #efe8dc;
   border-radius: 0.65rem;
   transition: transform 160ms ease, opacity 160ms ease, box-shadow 200ms ease;
@@ -1607,6 +1607,19 @@ div.market-search {
 
 @media (hover: hover) and (pointer: fine) {
   .artisan-photo-card:hover { transform: translateY(-2px); }
+}
+
+/* Mobile only: slightly smaller artisan cards (carousel behaviour unchanged) */
+@media (max-width: 639px) {
+  #makers .artisan-photo-card {
+    width: 82%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #makers .artisan-photo-card > div:first-child {
+    aspect-ratio: 3 / 4;
+  }
 }
 
 .product-grid-dense {
