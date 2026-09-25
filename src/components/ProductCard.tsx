@@ -25,7 +25,7 @@ const ProductRating: React.FC<{ rating: number; reviewCount?: number | null }> =
               <Star className="absolute inset-0 h-3 w-3 text-stone-300" strokeWidth={1.5} />
               {fill > 0 && (
                 <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
-                  <Star className="h-3 w-3 fill-mustard text-mustard" strokeWidth={1.5} />
+                  <Star className="h-3 w-3 fill-gold text-gold" strokeWidth={1.5} />
                 </span>
               )}
             </span>

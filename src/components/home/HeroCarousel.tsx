@@ -108,10 +108,10 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({ slides }) => {
         <div className="pointer-events-none absolute inset-0 z-10 mx-auto flex min-h-[22rem] max-w-market flex-col justify-end px-4 py-8 sm:min-h-[26rem] sm:py-10 lg:min-h-[32rem] lg:px-8 lg:py-14">
           <div className="pointer-events-auto">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">{active.eyebrow}</p>
-            <h1 className="mt-3 max-w-xl font-display text-[2rem] leading-[1.08] tracking-[-0.03em] text-ivory sm:text-5xl lg:text-[3.4rem]">
+            <h1 className="mt-3 max-w-xl font-display text-[2rem] leading-[1.08] tracking-[-0.03em] text-white sm:text-5xl lg:text-[3.4rem]">
               {active.title}
             </h1>
-            <p className="mt-3 max-w-md text-sm leading-6 text-[rgba(243,234,204,0.88)] sm:text-base sm:leading-7">
+            <p className="mt-3 max-w-md text-sm leading-6 text-gold-light/90 sm:text-base sm:leading-7">
               {active.subtitle}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -120,7 +120,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({ slides }) => {
               </Link>
               <Link
                 to="/marketplace"
-                className="inline-flex min-h-11 items-center rounded-md border border-[rgba(243,234,204,0.35)] px-5 text-sm font-semibold text-ivory hover:border-gold hover:text-gold"
+                className="inline-flex min-h-11 items-center rounded-md border border-[rgba(212,175,55,0.35)] px-5 text-sm font-semibold text-gold-light hover:border-gold hover:text-gold"
               >
                 Explore Shop
               </Link>

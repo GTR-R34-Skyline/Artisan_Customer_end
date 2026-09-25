@@ -4,7 +4,7 @@ import { ArrowUpRight, Check } from 'lucide-react';
 import { WeaverLoader } from './WeaverLoader';
 
 export const Eyebrow: React.FC<{ children: React.ReactNode; light?: boolean }> = ({ children, light = false }) => (
-  <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${light ? 'text-white/70' : 'text-royal'}`}>
+  <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${light ? 'text-gold-light' : 'text-royal'}`}>
     {children}
   </p>
 );
